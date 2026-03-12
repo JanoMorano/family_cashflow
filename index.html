@@ -576,7 +576,7 @@ const LANG = {
     sub0:'Mieszkanie — Nieruchomość 1',sub1:'Mieszkanie — Nieruchomość 2',sub2:'Ubezpieczenia',sub3:'Wydatki osobiste',sub4:'Wspólne wydatki',sub5:'Oszczędności',
   },
 };
-let currentLang=localStorage.getItem('lang')||'cs';
+let currentLang=localStorage.getItem('lang')||'en';
 const t=key=>LANG[currentLang]?.[key]??LANG.cs[key]??key;
 let currentCurrency=null;
 const cur=()=>currentCurrency||LANG[currentLang].currency;
@@ -615,64 +615,18 @@ function applyLang(code){
 let rowSeq = 0;
 const SUB_COLORS = ['#3B82F6','#8B5CF6','#EC4899','#F59E0B','#10B981','#6366F1'];
 
-const INCOME_DATA = [
-  {name:'Plat — osoba 1', k:55000, h:0,     s:0},
-  {name:'Plat — osoba 2', k:0,     h:90000, s:0},
-  {name:'Nájem / příjem', k:0,     h:0,     s:20000},
-];
+const INCOME_DATA = [];
 const SUBS = [
-  {id:'s0',labelKey:'sub0',color:SUB_COLORS[0],items:[
-    {name:'Hypotéka',              k:0,h:0,    s:5000, tp:true},
-    {name:'Poplatky SVJ / správa', k:0,h:0,    s:3000},
-    {name:'Elektrika',             k:0,h:0,    s:2000},
-    {name:'Plyn',                  k:0,h:0,    s:500,  tp:true},
-  ]},
-  {id:'s1',labelKey:'sub1',color:SUB_COLORS[1],items:[
-    {name:'Hypotéka',        k:0,h:40000,s:0,tp:true},
-    {name:'Elektrika záloha',k:0,h:4000, s:0,tp:true},
-    {name:'Plyn záloha',     k:0,h:1500, s:0,tp:true},
-  ]},
-  {id:'s2',labelKey:'sub2',color:SUB_COLORS[2],items:[
-    {name:'Pojistka nemovitost 1', k:0,h:0,   s:400},
-    {name:'Pojistka nemovitost 2', k:0,h:0,   s:600},
-    {name:'IZP — osoba 2',         k:0,h:1500,s:0,tp:true},
-    {name:'Životní pojištění',     k:0,h:0,   s:3000,tp:true},
-    {name:'Pojistka dítě 1',       k:0,h:0,   s:200, tp:true},
-    {name:'Pojistka dítě 2',       k:0,h:0,   s:200, tp:true},
-  ]},
-  {id:'s3',labelKey:'sub3',color:SUB_COLORS[3],items:[
-    {name:'Kapesné — osoba 1', k:5000,h:0,    s:0},
-    {name:'Kapesné — osoba 2', k:0,   h:5000, s:0},
-    {name:'Osobní — sdílené',  k:0,   h:0,    s:2000},
-  ]},
-  {id:'s4',labelKey:'sub4',color:SUB_COLORS[4],items:[
-    {name:'Benzin',          k:5000,h:0,    s:5000},
-    {name:'Jídlo',           k:8000,h:8000, s:0   },
-    {name:'Obědy — osoba 1', k:1000,h:0,    s:0   },
-    {name:'Obědy — osoba 2', k:0,   h:1000, s:0   },
-    {name:'Škola — dítě 1',  k:0,   h:0,    s:1500},
-    {name:'Školka — dítě 2', k:0,   h:0,    s:1500},
-    {name:'Telefon',         k:0,   h:800,  s:0   },
-    {name:'Investice dítě 1',k:0,   h:0,    s:750, tp:true},
-    {name:'Investice dítě 2',k:0,   h:0,    s:750, tp:true},
-    {name:'Internet',        k:0,   h:0,    s:400 },
-    {name:'Streaming',       k:0,   h:0,    s:500 },
-    {name:'Ostatní předplatné',k:0, h:500,  s:0   },
-  ]},
-  {id:'s5',labelKey:'sub5',color:SUB_COLORS[5],savings:true,items:[
-    {name:'Spoření — osoba 1',k:10000,h:0,     s:0},
-    {name:'Spoření — osoba 2',k:0,    h:10000, s:0},
-  ]},
+  {id:'s0',labelKey:'sub0',color:SUB_COLORS[0],items:[]},
+  {id:'s1',labelKey:'sub1',color:SUB_COLORS[1],items:[]},
+  {id:'s2',labelKey:'sub2',color:SUB_COLORS[2],items:[]},
+  {id:'s3',labelKey:'sub3',color:SUB_COLORS[3],items:[]},
+  {id:'s4',labelKey:'sub4',color:SUB_COLORS[4],items:[]},
+  {id:'s5',labelKey:'sub5',color:SUB_COLORS[5],savings:true,items:[]},
 ];
 
 // Pots — balance, monthly, goal, color
-let POTS = [
-  {id:'p0',icon:'💰',name:'Spoření',      color:'#7C3AED',balance:100000,monthly:10000,goal:500000,sliderMax:1000000},
-  {id:'p1',icon:'🚗',name:'Auto fond',    color:'#2563EB',balance:80000, monthly:5000, goal:300000,sliderMax:600000},
-  {id:'p2',icon:'✈️', name:'Cestování',   color:'#0D9488',balance:5000,  monthly:2000, goal:50000, sliderMax:200000},
-  {id:'p3',icon:'👶',name:'Dětské úspory',color:'#D97706',balance:30000, monthly:1000, goal:200000,sliderMax:500000},
-  {id:'p4',icon:'🛡️', name:'Rezerva',     color:'#EC4899',balance:20000, monthly:2000, goal:100000,sliderMax:300000},
-];
+let POTS = [];
 let potSeq=0;
 const POT_ICONS=['💰','🚗','✈️','👶','🛡️','🏠','📈','🎓','💊','🌴','🎯','💎','🎸','⚽','🐾','🧳'];
 const POT_COLORS=['#7C3AED','#2563EB','#0D9488','#D97706','#EC4899','#EF4444','#14B8A6','#F97316','#6366F1','#84CC16'];
@@ -1374,7 +1328,7 @@ let tagSeq=0;
 let chartTags=null;
 const tagSelections=new Map(); // tagId -> Set of rids
 
-// Returns [{label, items:[{rid,name,val}]}]
+// Returns [{label, items:[]}]
 function getItemsSections(){
   const sections=[];
   const incItems=[];
