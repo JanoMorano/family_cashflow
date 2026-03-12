@@ -3,7 +3,7 @@
 Interactive family budget calculator with live charts, savings tracker, and persistent backend.
 Supports **5 languages**: 🇨🇿 Czech · 🇬🇧 English · 🇸🇰 Slovak · 🇩🇪 German · 🇵🇱 Polish
 
-![screenshot](https://github.com/JanoMorano/family_cashflow/edit/main/README.md#:~:text=family_budget_1.00,-%2Dpreview.png)
+![screenshot]([family_cashflow/edit/main/README.md#:~:text=family_budget_1.00,-%2Dpreview.png](https://github.com/JanoMorano/family_cashflow/blob/main/demo/family_budget_1.00-preview.png))
 
 ---
 
