@@ -23,7 +23,7 @@ Supports **5 languages**: 🇨🇿 Czech · 🇬🇧 English · 🇸🇰 Slovak 
 ### Option A — Docker Compose (recommended)
 
 ```bash
-git clone https://github.com/your-username/family-budget.git
+git clone https://github.com/JanoMorano/family-budget.git
 cd family-budget
 docker compose up --build
 ```
