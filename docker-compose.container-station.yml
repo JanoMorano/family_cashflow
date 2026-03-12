@@ -1,0 +1,14 @@
+version: '2'
+
+# Container Station na QNAP — použij tento soubor
+# Image musí být nejdřív naimportovaný (viz build-and-export.sh)
+
+services:
+  rozpocet:
+    image: rozpocet-app:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - /share/Container/rozpocet-data:/data   # cesta na QNAP disku
+    restart: unless-stopped
+    container_name: rozpocet

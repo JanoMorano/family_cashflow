@@ -1,0 +1,16 @@
+version: '3.8'
+
+# Tento soubor vlož do Portainer → Stacks → Add stack → Web editor
+# Před tím spusť build.sh na serveru (viz níže)
+
+services:
+  rozpocet:
+    image: rozpocet-app:latest   # image zbuildovaný přes build.sh
+    ports:
+      - "3000:3000"
+    volumes:
+      - budget_data:/data
+    restart: unless-stopped
+
+volumes:
+  budget_data:

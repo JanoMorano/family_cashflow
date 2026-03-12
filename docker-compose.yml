@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  rozpocet:
+    build: ./backend
+    ports:
+      - "3000:3000"       # http://localhost:3000
+    volumes:
+      - budget_data:/data  # data přetrvají i po restartu
+    restart: unless-stopped
+
+volumes:
+  budget_data:
