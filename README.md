@@ -1,4 +1,5 @@
-# family_cashflow
+# 🏠 Family Budget App
+
 Interactive family budget calculator with live charts, savings tracker, and persistent backend.
 Supports **5 languages**: 🇨🇿 Czech · 🇬🇧 English · 🇸🇰 Slovak · 🇩🇪 German · 🇵🇱 Polish
 

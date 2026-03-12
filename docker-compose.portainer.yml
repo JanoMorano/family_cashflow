@@ -1,11 +1,11 @@
 version: '3.8'
 
-# Tento soubor vlož do Portainer → Stacks → Add stack → Web editor
-# Před tím spusť build.sh na serveru (viz níže)
+# Paste this file into Portainer → Stacks → Add stack → Web editor
+# Run build.sh on the server first (see build.sh)
 
 services:
-  rozpocet:
-    image: rozpocet-app:latest   # image zbuildovaný přes build.sh
+  family_cashflow:
+    image: family_cashflow:latest   # image built via build.sh
     ports:
       - "3000:3000"
     volumes:

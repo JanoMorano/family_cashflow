@@ -1,17 +1,17 @@
 #!/bin/sh
-# Spusť jednou na serveru — zbuilduje Docker image
-# Použití:  sh build.sh
+# Run once on the server — builds the Docker image
+# Usage:  sh build.sh
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-echo "🔨 Builduji image rozpocet-app..."
-docker build -t rozpocet-app:latest "$SCRIPT_DIR/backend"
+echo "🔨 Building image family_cashflow..."
+docker build -t family_cashflow:latest "$SCRIPT_DIR/backend"
 
-echo "✅ Hotovo! Image 'rozpocet-app:latest' je připravený."
+echo "✅ Done! Image 'family_cashflow:latest' is ready."
 echo ""
-echo "Teď v Portaineru:"
+echo "Next steps in Portainer:"
 echo "  Stacks → Add stack → Web editor"
-echo "  Vlož obsah souboru docker-compose.portainer.yml"
-echo "  Klikni 'Deploy the stack'"
+echo "  Paste the contents of docker-compose.portainer.yml"
+echo "  Click 'Deploy the stack'"

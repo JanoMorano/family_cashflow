@@ -1,14 +1,14 @@
 version: '2'
 
-# Container Station na QNAP — použij tento soubor
-# Image musí být nejdřív naimportovaný (viz build-and-export.sh)
+# For Container Station on QNAP — use this file
+# The image must be imported first (see build-and-export.sh)
 
 services:
-  rozpocet:
-    image: rozpocet-app:latest
+  family_cashflow:
+    image: family_cashflow:latest
     ports:
       - "3000:3000"
     volumes:
-      - /share/Container/rozpocet-data:/data   # cesta na QNAP disku
+      - /share/Container/family_cashflow-data:/data   # path on the QNAP disk
     restart: unless-stopped
-    container_name: rozpocet
+    container_name: family_cashflow

@@ -1,25 +1,25 @@
 #!/bin/sh
-# Spusť na svém počítači (kde máš Docker)
-# Zbuilduje image a uloží ho jako tar pro Container Station
+# Run on your computer (where Docker is installed)
+# Builds the image and saves it as a tar for Container Station
 #
-# Použití:
-#   cd rozpocet-app
+# Usage:
+#   cd family_cashflow
 #   sh build-and-export.sh
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-IMAGE="rozpocet-app:latest"
-OUTPUT="$SCRIPT_DIR/rozpocet-app.tar"
+IMAGE="family_cashflow:latest"
+OUTPUT="$SCRIPT_DIR/family_cashflow.tar"
 
-echo "🔨 Builduji Docker image..."
+echo "🔨 Building Docker image..."
 docker build --platform linux/amd64 -t "$IMAGE" "$SCRIPT_DIR/backend"
 
-echo "📦 Exportuji jako tar..."
+echo "📦 Exporting as tar..."
 docker save "$IMAGE" -o "$OUTPUT"
 
 echo ""
-echo "✅ Hotovo!"
-echo "   Soubor: $OUTPUT"
+echo "✅ Done!"
+echo "   File: $OUTPUT"
 echo ""
-echo "Container Station → Images → Import → vyber rozpocet-app.tar"
+echo "Container Station → Images → Import → select family_cashflow.tar"
