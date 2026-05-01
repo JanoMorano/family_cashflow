@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ Elektřina – Sledování spotřeby</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="/js/app-nav.js"></script>
+<script src="/js/app-version.js"></script>
+<script src="/js/app-version-label.js"></script>
+<script src="/js/utility-i18n.js"></script>
+<style>
+:root{
+  --blue:#2563EB;--blue-l:#EFF6FF;--blue-d:#1E40AF;
+  --green:#16A34A;--green-l:#F0FDF4;
+  --red:#DC2626;--red-l:#FEF2F2;
+  --yellow:#D97706;--yellow-l:#FFFBEB;
+  --g50:#F9FAFB;--g100:#F3F4F6;--g200:#E5E7EB;
+  --g400:#9CA3AF;--g600:#4B5563;--g800:#1F2937;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+     background:#EEF2FF;color:var(--g800);min-height:100vh;}
+.page{max-width:1060px;margin:0 auto;padding:20px 14px;}
+
+/* ── HEADER ── */
+.hdr{background:linear-gradient(135deg,var(--blue-d),var(--blue));
+     border-radius:16px;padding:22px 24px;margin-bottom:14px;color:#fff;}
+.hdr-top{display:flex;align-items:flex-start;justify-content:space-between;
+          flex-wrap:wrap;gap:8px;margin-bottom:18px;}
+.hdr h1{font-size:20px;font-weight:800;}
+.hdr-btns{display:flex;align-items:center;gap:8px;}
+.dark-btn{background:rgba(255,255,255,.15);border:none;border-radius:6px;
+          padding:3px 10px;font-size:14px;cursor:pointer;opacity:.8;
+          color:#fff;transition:all .15s;line-height:1.6;}
+.dark-btn:hover{opacity:1;background:rgba(255,255,255,.25);}
+.auth-pill{background:rgba(255,255,255,.14);border-radius:999px;padding:4px 10px;color:rgba(255,255,255,.88);font-size:11px;font-weight:700;white-space:nowrap;}
+.lang-switcher{display:flex;gap:4px;align-items:center;flex-wrap:wrap;}
+.lang-btn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);border-radius:6px;color:#fff;cursor:pointer;font-size:10px;font-weight:800;line-height:1.2;padding:4px 6px;}
+.lang-btn.active,.lang-btn:hover{background:#fff;color:var(--blue-d);opacity:1;}
+
+/* ── KPI ROW (in header) ── */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;}
+.kpi{background:rgba(255,255,255,.14);border-radius:10px;padding:11px 14px;}
+.kpi .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.06em;opacity:.75;margin-bottom:3px;}
+.kpi .val{font-size:21px;font-weight:800;}
+.kpi.yl .val{color:#FDE68A;}
+.kpi.bl .val{color:#93C5FD;}
+.kpi.gr .val{color:#86EFAC;}
+
+/* ── TAB NAV BAR ── */
+.tab-nav{background:#fff;border-radius:12px;margin-bottom:14px;
+         box-shadow:0 1px 4px rgba(0,0,0,.08);overflow-x:auto;}
+.tab-nav-inner{display:flex;border-bottom:1px solid var(--g200);}
+.tab-btn{background:none;border:none;border-bottom:3px solid transparent;
+         padding:13px 16px;font-size:13px;font-weight:600;color:var(--g400);
+         cursor:pointer;white-space:nowrap;transition:.15s;}
+.tab-btn:hover{color:var(--g800);}
+.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue);}
+
+/* ── CARD ── */
+.card{background:#fff;border-radius:12px;margin-bottom:12px;
+      box-shadow:0 1px 4px rgba(0,0,0,.08);overflow:hidden;}
+.card-hd{padding:11px 18px;font-size:12px;font-weight:700;text-transform:uppercase;
+         letter-spacing:.06em;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.card-hd.blue{background:var(--blue-l);color:var(--blue-d);}
+.card-hd.yellow{background:var(--yellow-l);color:var(--yellow);}
+.card-hd.green{background:var(--green-l);color:var(--green);}
+.card-hd.gray{background:var(--g50);color:var(--g600);}
+.card-hd.red{background:var(--red-l);color:var(--red);}
+.card-body{padding:16px 18px;}
+
+/* ── SECTION INSIDE TAB ── */
+.sec-hd{display:flex;justify-content:space-between;align-items:center;
+        margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+.sec-hd h2{font-size:15px;font-weight:800;}
+
+/* ── CHARTS ── */
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:16px;}
+.chart-box{position:relative;height:240px;}
+.chart-title{font-size:11px;font-weight:700;color:var(--g600);margin-bottom:6px;
+             text-transform:uppercase;letter-spacing:.05em;}
+@media(max-width:640px){.chart-grid{grid-template-columns:1fr;}}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead th{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;
+         color:var(--g400);padding:7px 10px;text-align:right;
+         background:var(--g50);border-bottom:1px solid var(--g200);}
+thead th:first-child{text-align:left;}
+td{padding:8px 10px;border-bottom:1px solid var(--g100);text-align:right;
+   font-size:13.5px;vertical-align:middle;}
+td:first-child{text-align:left;}
+tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:var(--g50);}
+.row-init td{opacity:.55;font-style:italic;}
+.row-warn td{background:#FFF7ED!important;}
+.td-date{font-weight:600;white-space:nowrap;}
+.td-notes{color:var(--g400);font-size:12px;max-width:160px;
+          overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.td-act{white-space:nowrap;text-align:right;}
+.btn-ic{background:none;border:none;cursor:pointer;padding:3px 6px;
+        border-radius:4px;color:var(--g400);font-size:14px;transition:.1s;}
+.btn-ic:hover{background:var(--g100);color:var(--g800);}
+.btn-ic.del:hover{background:var(--red-l);color:var(--red);}
+.no-data{text-align:center;padding:48px 20px;color:var(--g400);}
+.tbl-foot{padding:9px 10px;text-align:right;font-weight:700;font-size:13px;
+          background:var(--g50);border-top:2px solid var(--g200);}
+
+/* ── BADGES ── */
+.badge{display:inline-block;font-size:9.5px;padding:1px 5px;
+       border-radius:99px;font-weight:700;flex-shrink:0;}
+.bvt{background:#FEF3C7;color:#92400E;}
+.bnt{background:#DBEAFE;color:var(--blue-d);}
+.bwarn{background:var(--red-l);color:var(--red);}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;
+     border-radius:8px;border:none;cursor:pointer;font-size:13px;
+     font-weight:600;transition:.15s;font-family:inherit;}
+.btn-p{background:var(--blue);color:#fff;}
+.btn-p:hover{background:var(--blue-d);}
+.btn-s{background:var(--g50);color:var(--g800);border:1px solid var(--g200);}
+.btn-s:hover{background:var(--g100);}
+.btn-d{background:var(--red);color:#fff;}
+.btn-d:hover{opacity:.85;}
+.btn-sm{padding:4px 10px;font-size:12px;}
+.btn-add{background:none;border:1.5px dashed var(--blue);color:var(--blue);
+         border-radius:6px;padding:3px 12px;font-size:12px;font-weight:700;
+         cursor:pointer;transition:all .15s;}
+.btn-add:hover{background:var(--blue-l);}
+
+/* ── TARIFF SETTINGS ── */
+.set-section{margin-bottom:0;}
+.set-section h3{font-size:12px;font-weight:700;text-transform:uppercase;
+                letter-spacing:.06em;padding:10px 18px;background:var(--g50);
+                color:var(--g600);border-top:1px solid var(--g200);}
+.set-section:first-child h3{border-top:none;}
+.fg2{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px 18px;}
+.fg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:14px 18px;}
+@media(max-width:560px){.fg2,.fg3{grid-template-columns:1fr;}}
+.field{display:flex;flex-direction:column;gap:4px;}
+label.fl{font-size:10px;font-weight:600;text-transform:uppercase;
+         letter-spacing:.05em;color:var(--g400);}
+input[type=text],input[type=number],input[type=date],textarea,select{
+  background:var(--g50);border:1px solid var(--g200);border-radius:6px;
+  padding:7px 10px;font-size:13.5px;color:var(--g800);width:100%;
+  outline:none;transition:border-color .15s;font-family:inherit;}
+input:focus,textarea:focus,select:focus{border-color:var(--blue);background:var(--blue-l);}
+textarea{resize:vertical;min-height:56px;}
+.field-note{font-size:10.5px;color:var(--g400);margin-top:2px;}
+.err{font-size:10.5px;color:var(--red);margin-top:2px;display:none;}
+.err.show{display:block;}
+.autofill-row{display:flex;align-items:center;gap:10px;padding:0 18px 14px;flex-wrap:wrap;}
+.manual-tag{display:inline-block;font-size:10px;background:#FFF7ED;color:#C2410C;
+            border:1px solid #FED7AA;border-radius:4px;padding:1px 6px;margin-left:4px;}
+.tarif-formula{font-size:11px;color:var(--g400);padding:12px 18px;
+               line-height:1.6;border-top:1px solid var(--g200);background:var(--g50);}
+.save-msg{display:none;color:var(--green);margin-left:10px;font-size:12px;}
+.preview-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+              gap:10px;padding:16px 18px;}
+.pv-cell{background:var(--g50);border-radius:8px;padding:12px;border:1px solid var(--g200);}
+.pv-cell.pv-hi{background:var(--blue);color:#fff;border-color:var(--blue);}
+.pv-cell.pv-hi .pv-label{color:rgba(255,255,255,.75);}
+.pv-cell.pv-hi .pv-val{color:#fff;}
+.pv-cell.pv-hi .pv-sub{color:rgba(255,255,255,.7);}
+.pv-label{font-size:10px;color:var(--g400);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
+.pv-val{font-weight:700;font-size:15px;}
+.pv-sub{font-size:10.5px;color:var(--g400);margin-top:3px;}
+
+/* ── MODAL ── */
+.modal-bg{display:none;position:fixed;inset:0;
+          background:rgba(0,0,0,.4);z-index:200;
+          align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:#fff;border-radius:14px;padding:24px 26px;
+       width:min(500px,96vw);box-shadow:0 24px 64px rgba(0,0,0,.25);
+       max-height:90vh;overflow-y:auto;}
+.modal h3{font-size:16px;font-weight:800;margin-bottom:20px;}
+.fg{display:flex;flex-direction:column;gap:14px;}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;}
+.preview-box{background:var(--blue-l);border:1px solid var(--g200);
+             border-radius:8px;padding:12px;font-size:13px;display:none;}
+.preview-box.show{display:block;}
+.preview-row{display:flex;justify-content:space-between;padding:2px 0;}
+
+/* ── IMPORT / EXPORT ── */
+.import-zone{border:2px dashed var(--g200);border-radius:10px;padding:36px 20px;
+             text-align:center;color:var(--g400);cursor:pointer;transition:.15s;}
+.import-zone:hover{border-color:var(--blue);color:var(--g800);}
+.import-zone input{display:none;}
+.code-box{background:var(--g50);border:1px solid var(--g200);border-radius:6px;
+          padding:12px;font-family:monospace;font-size:12px;color:var(--g600);
+          white-space:pre;overflow-x:auto;margin-top:8px;}
+.imp-msg{margin-top:10px;font-size:13px;min-height:20px;}
+.danger-zone{background:var(--red-l);border:1px solid #FECDD3;
+             border-radius:10px;padding:16px;max-width:400px;}
+
+/* ── TABS ── */
+.tab{display:none;}
+.tab.active{display:block;}
+
+/* ── DARK MODE ── */
+[data-theme="dark"]{
+  --blue:#60A5FA;--blue-l:#1e3a5f;--blue-d:#93C5FD;
+  --green:#4ADE80;--green-l:#14532D;
+  --red:#F87171;--red-l:#450A0A;
+  --yellow:#FCD34D;--yellow-l:#431407;
+  --g50:#374151;--g100:#4B5563;--g200:#6B7280;
+  --g400:#9CA3AF;--g600:#D1D5DB;--g800:#F9FAFB;
+}
+[data-theme="dark"] body{background:#111827;}
+[data-theme="dark"] .card,[data-theme="dark"] .modal,[data-theme="dark"] .tab-nav{background:#1F2937;}
+[data-theme="dark"] .hdr{background:linear-gradient(135deg,#1e3a5f,#1d4ed8);}
+[data-theme="dark"] input,[data-theme="dark"] textarea,[data-theme="dark"] select{color:var(--g800);}
+[data-theme="dark"] input:focus,[data-theme="dark"] textarea:focus,[data-theme="dark"] select:focus{background:#1e3a5f;}
+[data-theme="dark"] .pv-cell{background:var(--g50);}
+[data-theme="dark"] .tarif-formula,[data-theme="dark"] .set-section h3{background:var(--g50);}
+[data-theme="dark"] .row-warn td{background:#2d1a06!important;}
+
+@media(max-width:500px){.frow{grid-template-columns:1fr;}}
+</style>
+</head>
+<body data-utility="energy">
+<div class="page">
+
+<!-- ═══ HEADER ═══ -->
+<div class="hdr">
+  <div class="hdr-top">
+    <h1 data-i18n="energy_page_title">⚡ Elektřina – Sledování spotřeby</h1>
+    <div class="hdr-btns">
+      <button class="dark-btn" onclick="goToApp('/')" data-i18n="nav_budget" data-i18n-title="nav_budget_title" title="Přejít na Rodinný rozpočet">📊 Rozpočet</button>
+      <button class="dark-btn" onclick="goToApp('/gas')" data-i18n="nav_gas" data-i18n-title="nav_gas_title" title="Přejít na Plyn">🔥 Plyn</button>
+      <button class="dark-btn" id="dark-btn" onclick="toggleDark()" data-i18n-title="dark_title" title="Tmavý / světlý režim">🌙</button>
+      <div class="lang-switcher">
+        <button class="lang-btn" data-lang="cs" onclick="setLang('cs')">CS</button>
+        <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+        <button class="lang-btn" data-lang="sk" onclick="setLang('sk')">SK</button>
+        <button class="lang-btn" data-lang="de" onclick="setLang('de')">DE</button>
+        <button class="lang-btn" data-lang="pl" onclick="setLang('pl')">PL</button>
+      </div>
+      <span class="auth-pill" data-app-version>Family Cashflow 1.1</span>
+      <span class="auth-pill" id="auth-user">—</span>
+      <button class="dark-btn" onclick="logout()" data-i18n-title="logout_title" title="Odhlásit">⏻</button>
+    </div>
+  </div>
+  <div class="kpi-row">
+    <div class="kpi yl">
+      <div class="lbl" data-i18n="kpi_month_estimate">Tento měsíc (odhad)</div>
+      <div class="val" id="kpi-month">—</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl" data-i18n="kpi_avg_month">Průměr / měsíc</div>
+      <div class="val" id="kpi-avg-cost">—</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl" data-i18n="kpi_avg_vt">Průměr VT</div>
+      <div class="val" id="kpi-avg-vt">—</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl" data-i18n="kpi_avg_nt">Průměr NT</div>
+      <div class="val" id="kpi-avg-nt">—</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl" data-i18n="kpi_span">Sledováno</div>
+      <div class="val" id="kpi-span">—</div>
+    </div>
+    <div class="kpi bl">
+      <div class="lbl" data-i18n="kpi_price_vt_vat">Cena VT s DPH</div>
+      <div class="val" id="kpi-price-vt">—</div>
+    </div>
+    <div class="kpi bl">
+      <div class="lbl" data-i18n="kpi_price_nt_vat">Cena NT s DPH</div>
+      <div class="val" id="kpi-price-nt">—</div>
+    </div>
+    <div class="kpi bl">
+      <div class="lbl" data-i18n="kpi_monthly_fee_vat">Měs. paušál s DPH</div>
+      <div class="val" id="kpi-monthly-fee">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB NAVIGATION ═══ -->
+<div class="tab-nav">
+  <div class="tab-nav-inner">
+    <button class="tab-btn active" id="tab-btn-dash" onclick="showTab('dash')" data-i18n="tab_overview">📊 Přehled</button>
+    <button class="tab-btn" id="tab-btn-read" onclick="showTab('read')" data-i18n="tab_readings">📋 Odečty</button>
+    <button class="tab-btn" id="tab-btn-tarif" onclick="showTab('tarif')" data-i18n="tab_tariff">⚙️ Tarif</button>
+    <button class="tab-btn" id="tab-btn-io" onclick="showTab('io')" data-i18n="tab_io">📥 Import/Export</button>
+  </div>
+</div>
+
+<!-- ═══ TAB: PŘEHLED ═══ -->
+<div class="tab active" id="tab-dash">
+
+  <div id="dash-empty" style="display:none;" class="card">
+    <div class="no-data">
+      <div style="font-size:48px;margin-bottom:12px;">⚡</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:8px;" data-i18n="empty_title">Zatím žádná data</div>
+      <div style="margin-bottom:20px;color:var(--g400);" data-i18n="empty_desc">Přidejte alespoň dva odečty, aby se zobrazily grafy.</div>
+      <button class="btn btn-p" onclick="showTab('read'); openModal()" data-i18n="empty_first_reading">+ Přidat první odečet</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd blue" data-i18n="monthly_usage_costs">📊 Měsíční spotřeba &amp; náklady</div>
+    <div class="chart-grid">
+      <div class="chart-box">
+        <div class="chart-title" data-i18n="energy_consumption_chart">Spotřeba kWh — VT + NT</div>
+        <canvas id="ch-cons"></canvas>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title" data-i18n="energy_cost_chart">Náklady (Kč s DPH)</div>
+        <canvas id="ch-cost"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ TAB: ODEČTY ═══ -->
+<div class="tab" id="tab-read">
+  <div class="card">
+    <div class="card-hd yellow">
+      <span data-i18n="energy_readings_title">📋 Odečty elektroměru</span>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-s btn-sm" onclick="loadSampleData()" data-i18n="sample_data">🎲 Vzorová data</button>
+        <button class="btn-add" onclick="openModal()" data-i18n="add_reading">+ Přidat odečet</button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left" data-i18n="th_date">Datum</th>
+            <th data-i18n="th_vt_state">VT stav (kWh)</th>
+            <th data-i18n="th_nt_state">NT stav (kWh)</th>
+            <th data-i18n="th_vt_usage">VT spotřeba</th>
+            <th data-i18n="th_nt_usage">NT spotřeba</th>
+            <th data-i18n="th_total_kwh">Celkem kWh</th>
+            <th data-i18n="th_days">Dny</th>
+            <th data-i18n="th_cost_czk">Náklady (Kč)</th>
+            <th data-i18n="th_note">Poznámka</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="readings-body"></tbody>
+      </table>
+      <div id="tbl-foot" style="display:none;" class="tbl-foot"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB: TARIF ═══ -->
+<div class="tab" id="tab-tarif">
+
+  <div class="card">
+    <div class="card-hd gray" data-i18n="energy_tariff_title">⚙️ Ceník a sazba</div>
+
+    <div class="set-section">
+      <h3 data-i18n="contract_id">🔌 Identifikace smlouvy</h3>
+      <div class="fg2">
+        <div class="field">
+          <label class="fl" data-i18n="distribution_tariff">Distribuční sazba</label>
+          <select id="t-dist">
+            <option value="D01d" data-i18n="rate_d01">D01d — jednosazbový</option>
+            <option value="D02d" data-i18n="rate_d02">D02d — dvousazbový</option>
+            <option value="D25d" data-i18n="rate_d25">D25d — tepelné čerpadlo</option>
+            <option value="D26d" data-i18n="rate_d26">D26d — přímotop</option>
+            <option value="D27d" data-i18n="rate_d27">D27d — akumulační vytápění</option>
+            <option value="D35d" data-i18n="rate_d35">D35d — rekreační objekt</option>
+            <option value="D45d" data-i18n="rate_d45">D45d — maloodběr</option>
+            <option value="D56d" data-i18n="rate_d56">D56d — TČ (8h NT)</option>
+            <option value="D57d" data-i18n="rate_d57">D57d — TČ (22h NT)</option>
+            <option value="D61d" data-i18n="rate_d61">D61d — veřejné osvětlení</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="fl" data-i18n="breaker">Jistič</label>
+          <select id="t-breaker">
+            <option value="up_to_3x10_or_1x25" data-i18n="breaker_up_to_3x10_or_1x25">do 3×10 A nebo 1×25 A</option>
+            <option value="over_3x10_to_3x16" data-i18n="breaker_over_3x10_to_3x16">nad 3×10 A do 3×16 A</option>
+            <option value="over_3x16_to_3x20" data-i18n="breaker_over_3x16_to_3x20">nad 3×16 A do 3×20 A</option>
+            <option value="over_3x20_to_3x25" data-i18n="breaker_over_3x20_to_3x25">nad 3×20 A do 3×25 A</option>
+            <option value="over_3x25_to_3x32" data-i18n="breaker_over_3x25_to_3x32">nad 3×25 A do 3×32 A</option>
+            <option value="over_3x32_to_3x40" data-i18n="breaker_over_3x32_to_3x40">nad 3×32 A do 3×40 A</option>
+            <option value="over_3x40_to_3x50" data-i18n="breaker_over_3x40_to_3x50">nad 3×40 A do 3×50 A</option>
+            <option value="over_3x50_to_3x63" data-i18n="breaker_over_3x50_to_3x63">nad 3×50 A do 3×63 A</option>
+          </select>
+        </div>
+      </div>
+      <div class="autofill-row">
+        <button class="btn btn-s btn-sm" onclick="autoFillTariff()" data-i18n="auto_fill_tariff">⬇️ Načíst z ceníku innogy / ČEZ</button>
+        <span style="font-size:12px;color:var(--g400)" data-i18n="auto_fill_note">Kompletní data k dispozici pro D57d · u ostatních sazeb doplňte distribuci ručně</span>
+      </div>
+    </div>
+
+    <div class="set-section">
+      <h3 data-i18n="supplier_start">⚡ Dodavatel — innogy Energie Start 24</h3>
+      <div class="fg3">
+        <div class="field">
+          <label class="fl" data-i18n="supplier_fee">Stálý měs. plat (Kč/měsíc)</label>
+          <input type="number" id="t-sup-fee" step="0.01" placeholder="127.00">
+          <div class="field-note" data-i18n="note_no_vat_all_rates">bez DPH · ř. 1 ceníku · všechny sazby</div>
+        </div>
+        <div class="field">
+          <label class="fl" data-i18n="commodity_vt">Silová el. VT (Kč/MWh)</label>
+          <input type="number" id="t-com-vt" step="0.01" placeholder="2890.00">
+          <div class="field-note" id="note-com-vt" data-i18n="note_no_vat_vt">bez DPH · <span class="badge bvt">VT</span></div>
+        </div>
+        <div class="field">
+          <label class="fl" data-i18n="commodity_nt">Silová el. NT (Kč/MWh)</label>
+          <input type="number" id="t-com-nt" step="0.01" placeholder="2890.00">
+          <div class="field-note" id="note-com-nt" data-i18n="note_no_vat_nt">bez DPH · <span class="badge bnt">NT</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="set-section">
+      <h3 data-i18n="distribution_cez">🏭 Distribuce — ČEZ Distribuce</h3>
+      <div class="fg3">
+        <div class="field">
+          <label class="fl" data-i18n="breaker_fee">Měs. plat za jistič (Kč/měsíc)</label>
+          <input type="number" id="t-dist-fee" step="0.01" placeholder="555.00">
+          <div class="field-note" id="note-dist-fee" data-i18n="note_by_rate_breaker">bez DPH · dle sazby + jističe</div>
+        </div>
+        <div class="field">
+          <label class="fl" data-i18n="distribution_vt">Distribuce VT (Kč/MWh)</label>
+          <input type="number" id="t-dist-vt" step="0.01" placeholder="754.77">
+          <div class="field-note" id="note-dist-vt" data-i18n="note_no_vat_vt">bez DPH · <span class="badge bvt">VT</span></div>
+        </div>
+        <div class="field">
+          <label class="fl" data-i18n="distribution_nt">Distribuce NT (Kč/MWh)</label>
+          <input type="number" id="t-dist-nt" step="0.01" placeholder="116.50">
+          <div class="field-note" id="note-dist-nt" data-i18n="note_no_vat_nt">bez DPH · <span class="badge bnt">NT</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="set-section">
+      <h3 data-i18n="regulated_items">📋 Regulované položky (platné od 1. 1. 2026)</h3>
+      <div class="fg3">
+        <div class="field">
+          <label class="fl" data-i18n="system_services">Sys. služby (Kč/MWh)</label>
+          <input type="number" id="t-sys" step="0.01" placeholder="164.24">
+          <div class="field-note" data-i18n="note_no_vat_energy">bez DPH · na odebranou energii</div>
+        </div>
+        <div class="field">
+          <label class="fl" data-i18n="energy_tax">Daň z elektřiny (Kč/MWh)</label>
+          <input type="number" id="t-tax" step="0.01" placeholder="28.30">
+          <div class="field-note" data-i18n="note_no_vat_energy">bez DPH · na odebranou energii</div>
+        </div>
+        <div class="field">
+          <label class="fl" data-i18n="ote_fee">OTE poplatek (Kč/měsíc)</label>
+          <input type="number" id="t-ote" step="0.01" placeholder="2.99">
+          <div class="field-note" data-i18n="note_no_vat_monthly">bez DPH · měsíčně</div>
+        </div>
+        <div class="field">
+          <label class="fl" data-i18n="data_center">Datové centrum (Kč/měsíc)</label>
+          <input type="number" id="t-dc" step="0.01" placeholder="5.88">
+          <div class="field-note" data-i18n="note_no_vat_monthly">bez DPH · měsíčně</div>
+        </div>
+        <div class="field">
+          <label class="fl" data-i18n="eru_fee">ERU poplatek (Kč/měsíc)</label>
+          <input type="number" id="t-eru" step="0.01" placeholder="4.00">
+          <div class="field-note" data-i18n="note_no_vat_monthly">bez DPH · měsíčně</div>
+        </div>
+        <div class="field">
+          <label class="fl" data-i18n="vat">DPH (%)</label>
+          <input type="number" id="t-vat" step="0.1" min="0" max="100" placeholder="21">
+          <div class="field-note" data-i18n="note_current_vat">aktuálně 21 %</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;padding:0 18px 16px;">
+        <button class="btn btn-p" onclick="saveTariff()" data-i18n="save_settings">💾 Uložit nastavení</button>
+        <span class="save-msg" id="tariff-ok" data-i18n="saved">✓ Uloženo</span>
+      </div>
+    </div>
+
+    <div class="set-section">
+      <h3 data-i18n="result_prices_from_above">💰 Výsledné ceny (vypočítáno z výše)</h3>
+      <div class="preview-grid" id="tarif-result"></div>
+      <div class="tarif-formula" id="tarif-formula"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ TAB: IMPORT / EXPORT ═══ -->
+<div class="tab" id="tab-io">
+  <div class="card">
+    <div class="card-hd gray" data-i18n="io_title">📥 Import a Export dat</div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:800px;margin-bottom:28px;">
+        <div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:12px;" data-i18n="export_title">📤 Export</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button class="btn btn-s" onclick="exportCSV()" data-i18n="export_csv_readings">📄 Export CSV (odečty)</button>
+            <button class="btn btn-s" onclick="exportJSON()" data-i18n="export_json_all">📦 Export JSON (vše)</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:12px;" data-i18n="import_title">📥 Import CSV / JSON</div>
+          <label class="import-zone" for="import-file">
+            <div style="font-size:36px;margin-bottom:8px;">📄</div>
+            <div style="font-weight:600;" data-i18n="drop_file">Klikněte nebo přetáhněte soubor</div>
+            <div style="font-size:12px;margin-top:4px;" data-i18n="csv_or_json">.csv nebo .json</div>
+            <input type="file" id="import-file" accept=".csv,.json" onchange="handleImport(event)">
+          </label>
+          <div class="imp-msg" id="imp-msg"></div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:28px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px;" data-i18n="csv_import_format">Formát CSV pro import</div>
+        <div style="font-size:12px;color:var(--g400);margin-bottom:4px;" data-i18n="header_optional">První řádek záhlaví je volitelný.</div>
+        <div class="code-box">datum,vt_stav,nt_stav,poznamka
+2024-01-01,12500.5,8320.2,Počáteční stav
+2024-02-01,12724.3,8451.8,
+2024-03-01,12935.6,8580.1,Výměna žárovek</div>
+      </div>
+
+      <div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px;" data-i18n="danger_title">⚠️ Nebezpečná zóna</div>
+        <div class="danger-zone">
+          <div style="font-size:13px;margin-bottom:12px;" data-i18n="danger_desc">Smaže všechna uložená data (odečty). Tarif zůstane zachován.</div>
+          <button class="btn btn-d btn-sm" onclick="clearAll()" data-i18n="clear_all">🗑️ Smazat všechna data</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- .page -->
+
+<!-- ═══ MODAL ═══ -->
+<div class="modal-bg" id="modal-bg" onclick="bgClose(event)">
+  <div class="modal">
+    <h3 id="modal-title" data-i18n="modal_add">Přidat odečet</h3>
+    <div class="fg">
+      <div class="field">
+        <label class="fl" data-i18n="reading_date">Datum odečtu *</label>
+        <input type="date" id="m-date">
+        <div class="err" id="err-date" data-i18n="err_date">Zadejte datum</div>
+      </div>
+      <div class="frow">
+        <div class="field">
+          <label class="fl" data-i18n="energy_vt_state_required">VT stav (kWh) *</label>
+          <input type="number" id="m-vt" step="0.1" min="0" placeholder="12500.0" oninput="updatePreview()">
+          <div class="err" id="err-vt" data-i18n="err_vt">Zadejte hodnotu VT</div>
+        </div>
+        <div class="field">
+          <label class="fl" data-i18n="nt_state">NT stav (kWh)</label>
+          <input type="number" id="m-nt" step="0.1" min="0" placeholder="8320.0" oninput="updatePreview()">
+          <div class="field-note" data-i18n="note_single_tariff">Prázdné = jednosazbový měřič</div>
+        </div>
+      </div>
+      <div class="field">
+        <label class="fl" data-i18n="note">Poznámka</label>
+        <textarea id="m-notes" rows="2" placeholder="Volitelná poznámka…" data-i18n-placeholder="note_placeholder"></textarea>
+      </div>
+      <div class="preview-box" id="m-preview">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--g400);margin-bottom:8px;" data-i18n="period_calc">Výpočet za toto období</div>
+        <div id="m-preview-body"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-s" onclick="closeModal()" data-i18n="cancel">Zrušit</button>
+      <button class="btn btn-p" onclick="saveReading()" data-i18n="save">💾 Uložit</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  TARIFF LOOKUP DATA
+//  innogy Energie Start 24 / ČEZ Distribuce
+//  Domácnost · od 1. 1. 2026
+// ═══════════════════════════════════════════
+const TARIFF_DATA = {
+  D01d: { hasNT: false, commodityVT: 2990, commodityNT: null, distVT: null, distNT: null, fees: {} },
+  D02d: { hasNT: true,  commodityVT: 2990, commodityNT: 2990, distVT: null, distNT: null, fees: {} },
+  D25d: { hasNT: true,  commodityVT: 2890, commodityNT: 2890, distVT: null, distNT: null, fees: {} },
+  D26d: { hasNT: true,  commodityVT: 2890, commodityNT: 2890, distVT: null, distNT: null, fees: {} },
+  D27d: { hasNT: true,  commodityVT: 2890, commodityNT: 2890, distVT: null, distNT: null, fees: {} },
+  D35d: { hasNT: false, commodityVT: 2990, commodityNT: null, distVT: null, distNT: null, fees: {} },
+  D45d: { hasNT: false, commodityVT: 2990, commodityNT: null, distVT: null, distNT: null, fees: {} },
+  D56d: { hasNT: true,  commodityVT: 2890, commodityNT: 2890, distVT: null, distNT: null, fees: {} },
+  // D57d — kompletní data z ceníku
+  D57d: {
+    hasNT: true,
+    commodityVT: 2890.00, commodityNT: 2890.00,
+    distVT: 754.77,       distNT: 116.50,
+    fees: {
+      up_to_3x10_or_1x25: 222.00,
+      over_3x10_to_3x16:  355.00,
+      over_3x16_to_3x20:  444.00,
+      over_3x20_to_3x25:  555.00,
+      over_3x25_to_3x32:  710.00,
+      over_3x32_to_3x40:  896.00,
+      over_3x40_to_3x50: 1289.00,
+      over_3x50_to_3x63: 1949.00,
+    }
+  },
+  D61d: { hasNT: false, commodityVT: 2990, commodityNT: null, distVT: null, distNT: null, fees: {} },
+};
+
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+const TARIFF_DEFAULT = {
+  // Identifikace
+  distributionTariff: 'D57d',
+  breakerType:        'over_3x20_to_3x25',
+  // Dodavatel — innogy Start 24 (ř. 1 + silová elektřina)
+  supplierMonthlyFee_noVAT:     127.00,
+  commodityPriceVT_noVAT_MWh:  2890.00,
+  commodityPriceNT_noVAT_MWh:  2890.00,
+  // Distribuce — ČEZ (dle sazby + jistič)
+  distributionMonthlyFee_noVAT:  555.00,
+  distributionPriceVT_noVAT_MWh: 754.77,
+  distributionPriceNT_noVAT_MWh: 116.50,
+  // Regulované položky (společné, od 1. 1. 2026)
+  systemServices_noVAT_MWh:   164.24,
+  energyTax_noVAT_MWh:         28.30,
+  oteFee_noVAT_month:           2.99,
+  dataCenterFee_noVAT_month:    5.88,
+  eruFee_noVAT_month:           4.00,
+  vatRate:                      0.21,
+};
+
+let readings = [];
+let tariff   = { ...TARIFF_DEFAULT };
+let editId   = null;
+let charts   = {};
+let API_MODE = false; // true when served from Docker backend
+
+const LS_R = 'elec_readings';
+const LS_T = 'elec_tariff';
+const LS_D = 'elec_dark';
+const PAGE_TYPE = 'energy';
+
+function tr(key, vars = {}) { return UtilityI18n.t(key, vars); }
+function setLang(code) {
+  UtilityI18n.apply(code, PAGE_TYPE);
+  if ($('tab-dash').classList.contains('active')) renderDash();
+  if ($('tab-read').classList.contains('active')) renderReadings();
+  if ($('tab-tarif').classList.contains('active')) renderTarif();
+  if ($('modal-bg').classList.contains('open')) updatePreview();
+}
+
+async function initAuthUi(){
+  try{
+    const res=await fetch('/api/auth/me');
+    if(!res.ok){window.location.href='/login?next='+encodeURIComponent(window.location.pathname+window.location.search);return;}
+    const data=await res.json();
+    const el=$('auth-user');
+    if(el)el.textContent=data.user?.displayName||data.user?.username||'—';
+  }catch{
+    window.location.href='/login?next='+encodeURIComponent(window.location.pathname+window.location.search);
+  }
+}
+async function logout(){try{await fetch('/api/auth/logout',{method:'POST'});}catch{}window.location.href='/login';}
+
+// ═══════════════════════════════════════════
+//  PERSISTENCE — auto-detects API vs localStorage
+// ═══════════════════════════════════════════
+async function initData() {
+  await initAuthUi();
+  // Detect API mode: try /api/readings with a short timeout
+  try {
+    const r = await fetch('/api/readings', { signal: AbortSignal.timeout(800) });
+    if (r.ok) { API_MODE = true; console.info('⚡ API mode'); }
+  } catch(e) { /* standalone mode — localStorage */ }
+
+  if (API_MODE) {
+    try { readings = await fetch('/api/readings').then(r => r.json()); } catch(e) {}
+    try {
+      const t = await fetch('/api/tariff').then(r => r.json());
+      if (t && !t.vtRate) tariff = { ...TARIFF_DEFAULT, ...t };
+    } catch(e) {}
+  } else {
+    try { const r = localStorage.getItem(LS_R); if (r) readings = JSON.parse(r); } catch(e) {}
+    try {
+      const raw = localStorage.getItem(LS_T);
+      if (raw) { const s = JSON.parse(raw); if (!s.vtRate) tariff = { ...TARIFF_DEFAULT, ...s }; }
+    } catch(e) {}
+  }
+  if (localStorage.getItem(LS_D) === '1') {
+    document.documentElement.dataset.theme = 'dark';
+    document.getElementById('dark-btn').textContent = '☀️';
+  }
+
+  // Real-time updates via SSE (only in API mode)
+  if (API_MODE) {
+    const es = new EventSource('/api/events');
+    let myUpdate = false; // skip reloads triggered by this tab
+    es.onmessage = async (e) => {
+      if (e.data === 'connected') return;
+      if (myUpdate) { myUpdate = false; return; }
+      if (e.data === 'electricity') {
+        readings = await fetch('/api/readings').then(r => r.json());
+        const t = await fetch('/api/tariff').then(r => r.json());
+        if (t && !t.vtRate) tariff = { ...TARIFF_DEFAULT, ...t };
+        renderDash();
+        showToast(tr('toast_energy_updated'));
+      }
+    };
+    // Mark own updates so we don't reload on our own saves
+    window._ownUpdate = () => { myUpdate = true; };
+  }
+}
+
+async function saveR() {
+  if (!API_MODE) localStorage.setItem(LS_R, JSON.stringify(readings));
+  // In API_MODE reads are refreshed per-operation (POST/PUT/DELETE)
+}
+async function saveT() {
+  if (API_MODE) {
+    await fetch('/api/tariff', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(tariff),
+    });
+  } else {
+    localStorage.setItem(LS_T, JSON.stringify(tariff));
+  }
+}
+async function reloadReadings() {
+  if (API_MODE) readings = await fetch('/api/readings').then(r => r.json());
+}
+
+// ═══════════════════════════════════════════
+//  CALCULATIONS
+// ═══════════════════════════════════════════
+function sorted() {
+  return [...readings].sort((a,b) => a.date.localeCompare(b.date));
+}
+
+function daysBetween(d1, d2) {
+  return Math.round((new Date(d2) - new Date(d1)) / 86400000);
+}
+
+// Compute the three final price values from current tariff settings
+function computePrices() {
+  const t = tariff;
+  // ř. 29 ceníku: VT bez DPH = silová VT + distribuce VT + sys. služby + daň
+  const priceVT_noVAT = t.commodityPriceVT_noVAT_MWh
+    + t.distributionPriceVT_noVAT_MWh
+    + t.systemServices_noVAT_MWh
+    + t.energyTax_noVAT_MWh;
+  // ř. 30 ceníku: NT bez DPH = silová NT + distribuce NT + sys. služby + daň
+  const priceNT_noVAT = t.commodityPriceNT_noVAT_MWh
+    + t.distributionPriceNT_noVAT_MWh
+    + t.systemServices_noVAT_MWh
+    + t.energyTax_noVAT_MWh;
+  // ř. 28 ceníku: měs. platba bez DPH = stálý plat + jistič + OTE + DC + ERU
+  const monthlyPayment_noVAT = t.supplierMonthlyFee_noVAT
+    + t.distributionMonthlyFee_noVAT
+    + t.oteFee_noVAT_month
+    + t.dataCenterFee_noVAT_month
+    + t.eruFee_noVAT_month;
+  const vat = 1 + t.vatRate;
+  return {
+    priceVT_noVAT,
+    priceVT_withVAT:        priceVT_noVAT * vat,
+    priceNT_noVAT,
+    priceNT_withVAT:        priceNT_noVAT * vat,
+    monthlyPayment_noVAT,
+    monthlyPayment_withVAT: monthlyPayment_noVAT * vat,
+  };
+}
+
+function calcCost(vtKwh, ntKwh, days) {
+  const { priceVT_noVAT, priceNT_noVAT, monthlyPayment_noVAT } = computePrices();
+  // Convert kWh → MWh (ceník je v Kč/MWh)
+  const vtMWh = vtKwh / 1000;
+  const ntMWh = ntKwh / 1000;
+  const proratedFee       = monthlyPayment_noVAT * (days / 30.44);
+  const energyCost_noVAT  = vtMWh * priceVT_noVAT + ntMWh * priceNT_noVAT;
+  return (proratedFee + energyCost_noVAT) * (1 + tariff.vatRate);
+}
+
+function getIntervals() {
+  const s = sorted();
+  return s.slice(1).map((curr, i) => {
+    const prev = s[i];
+    const days  = daysBetween(prev.date, curr.date);
+    const vtD   = curr.vt - prev.vt;
+    const ntD   = (curr.nt != null && prev.nt != null) ? curr.nt - prev.nt : 0;
+    const cost  = calcCost(vtD, ntD, days);
+    return { curr, prev, days, vtD, ntD, total: vtD + ntD, cost, warn: vtD < 0 || ntD < 0 };
+  });
+}
+
+function monthlyAgg() {
+  const ivs = getIntervals();
+  const map = {};
+  for (const iv of ivs) {
+    const m = iv.curr.date.slice(0, 7);
+    if (!map[m]) map[m] = { vt: 0, nt: 0, cost: 0, days: 0 };
+    map[m].vt   += iv.vtD;
+    map[m].nt   += iv.ntD;
+    map[m].cost += iv.cost;
+    map[m].days += iv.days;
+  }
+  const months = Object.keys(map).sort();
+  return { months, map };
+}
+
+// ═══════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('tab-btn-' + name).classList.add('active');
+  if (name === 'dash')  renderDash();
+  if (name === 'read')  renderReadings();
+  if (name === 'tarif') renderTarif();
+}
+
+// ═══════════════════════════════════════════
+function showToast(msg) {
+  let t = document.getElementById('sse-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'sse-toast';
+    t.style.cssText = 'position:fixed;bottom:20px;right:20px;background:var(--blue);color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;z-index:9999;opacity:0;transition:opacity .3s';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._hide);
+  t._hide = setTimeout(() => t.style.opacity = '0', 2500);
+}
+
+//  DASHBOARD
+// ═══════════════════════════════════════════
+function renderDash() {
+  const { months, map } = monthlyAgg();
+  const hasData = months.length > 0;
+
+  document.getElementById('dash-empty').style.display = hasData ? 'none' : '';
+
+  // Pricing KPIs always shown (depend only on tariff, not readings)
+  const prices0 = computePrices();
+  $('kpi-price-vt').textContent    = fmt(prices0.priceVT_withVAT / 1000, 4);
+  $('kpi-price-nt').textContent    = fmt(prices0.priceNT_withVAT / 1000, 4);
+  $('kpi-monthly-fee').textContent = fmt(prices0.monthlyPayment_withVAT, 0);
+
+  if (!hasData) return;
+
+  const avgCost = months.reduce((s,m) => s + map[m].cost, 0) / months.length;
+  const avgVT   = months.reduce((s,m) => s + map[m].vt,   0) / months.length;
+  const avgNT   = months.reduce((s,m) => s + map[m].nt,   0) / months.length;
+
+  const nowM = new Date().toISOString().slice(0,7);
+  const thisMCost = map[nowM] ? map[nowM].cost : null;
+
+  const s = sorted();
+  const spanDays = s.length >= 2 ? daysBetween(s[0].date, s[s.length-1].date) : 0;
+
+  $('kpi-month').textContent     = thisMCost != null ? fmt(thisMCost) : ('~' + fmt(avgCost));
+  $('kpi-avg-cost').textContent  = fmt(avgCost);
+  $('kpi-avg-vt').textContent    = fmt(avgVT, 0);
+  $('kpi-avg-nt').textContent    = fmt(avgNT, 0);
+  $('kpi-span').textContent      = s.length;
+
+  // Pricing cards from tariff (always shown)
+  const prices = computePrices();
+  $('kpi-price-vt').textContent    = fmt(prices.priceVT_withVAT / 1000, 4);
+  $('kpi-price-nt').textContent    = fmt(prices.priceNT_withVAT / 1000, 4);
+  $('kpi-monthly-fee').textContent = fmt(prices.monthlyPayment_withVAT, 0);
+
+  drawCharts(months.slice(-24), map);
+}
+
+function drawCharts(months, map) {
+  const labels = months.map(m => { const [y,mo] = m.split('-'); return mo+'/'+y.slice(2); });
+
+  if (charts.cons) charts.cons.destroy();
+  charts.cons = new Chart($('ch-cons'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'VT', data: months.map(m => +map[m].vt.toFixed(1)),  backgroundColor: '#F59E0B', borderRadius: 3 },
+        { label: 'NT', data: months.map(m => +map[m].nt.toFixed(1)),  backgroundColor: '#60A5FA', borderRadius: 3 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }
+    }
+  });
+
+  if (charts.cost) charts.cost.destroy();
+  charts.cost = new Chart($('ch-cost'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Kč', data: months.map(m => Math.round(map[m].cost)),
+        borderColor: '#2563EB', backgroundColor: 'rgba(37,99,235,.1)',
+        tension: 0.3, fill: true, pointRadius: 4, pointHoverRadius: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: false } }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════
+//  READINGS TABLE
+// ═══════════════════════════════════════════
+function renderReadings() {
+  const s   = sorted();
+  const ivs = getIntervals();
+  const ivMap = {};
+  ivs.forEach(iv => ivMap[iv.curr.id] = iv);
+
+  const tbody = $('readings-body');
+
+  if (!s.length) {
+    tbody.innerHTML = `<tr><td colspan="10" class="no-data">
+      ${tr('empty_readings_energy')}<br><br>
+      <button class="btn btn-p btn-sm" onclick="openModal()">${tr('add_reading')}</button>
+    </td></tr>`;
+    $('tbl-foot').style.display = 'none';
+    return;
+  }
+
+  tbody.innerHTML = s.map((r, i) => {
+    const iv = ivMap[r.id];
+    const isFirst = i === 0;
+    const vtBadge = iv
+      ? `<span class="badge ${iv.vtD < 0 ? 'bwarn' : 'bvt'}">+${fmt(iv.vtD, 1)}</span>`
+      : '—';
+    const ntBadge = iv && iv.ntD !== 0
+      ? `<span class="badge ${iv.ntD < 0 ? 'bwarn' : 'bnt'}">+${fmt(iv.ntD, 1)}</span>`
+      : (iv ? '<span style="color:var(--g400)">—</span>' : '—');
+
+    return `<tr class="${isFirst ? 'row-init' : (iv?.warn ? 'row-warn' : '')}">
+      <td class="td-date">${fmtDate(r.date)}</td>
+      <td>${fmt(r.vt, 1)}</td>
+      <td>${r.nt != null ? fmt(r.nt, 1) : '<span style="color:var(--g400)">—</span>'}</td>
+      <td>${vtBadge}</td>
+      <td>${ntBadge}</td>
+      <td>${iv ? fmt(iv.total, 1) : '—'}</td>
+      <td>${iv ? iv.days : '—'}</td>
+      <td>${iv ? `<strong>${fmt(iv.cost)}</strong>` : '—'}</td>
+      <td class="td-notes" title="${esc(r.notes||'')}">${esc(r.notes||'')}</td>
+      <td class="td-act">
+        <button class="btn-ic" onclick="openModal('${r.id}')" title="${tr('edit_title')}">✏️</button>
+        <button class="btn-ic del" onclick="delReading('${r.id}')" title="${tr('delete_title')}">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Footer totals
+  const totalCost = ivs.reduce((s,iv) => s + iv.cost, 0);
+  const totalVT   = ivs.reduce((s,iv) => s + iv.vtD,  0);
+  const totalNT   = ivs.reduce((s,iv) => s + iv.ntD,  0);
+  const totalDays = s.length >= 2 ? daysBetween(s[0].date, s[s.length-1].date) : 0;
+  $('tbl-foot').style.display = ivs.length ? '' : 'none';
+  $('tbl-foot').innerHTML = `${tr('footer_total')}: ${totalDays} ${tr('footer_days')} &nbsp;|&nbsp; VT: ${fmt(totalVT,0)} kWh &nbsp;|&nbsp; NT: ${fmt(totalNT,0)} kWh &nbsp;|&nbsp; 💰 ${fmt(totalCost)} Kč`;
+}
+
+// ═══════════════════════════════════════════
+//  TARIFF TAB
+// ═══════════════════════════════════════════
+function renderTarif() {
+  $('t-dist').value    = tariff.distributionTariff;
+  $('t-breaker').value = tariff.breakerType;
+  $('t-sup-fee').value = tariff.supplierMonthlyFee_noVAT;
+  $('t-com-vt').value  = tariff.commodityPriceVT_noVAT_MWh;
+  $('t-com-nt').value  = tariff.commodityPriceNT_noVAT_MWh;
+  $('t-dist-fee').value = tariff.distributionMonthlyFee_noVAT;
+  $('t-dist-vt').value  = tariff.distributionPriceVT_noVAT_MWh;
+  $('t-dist-nt').value  = tariff.distributionPriceNT_noVAT_MWh;
+  $('t-sys').value  = tariff.systemServices_noVAT_MWh;
+  $('t-tax').value  = tariff.energyTax_noVAT_MWh;
+  $('t-ote').value  = tariff.oteFee_noVAT_month;
+  $('t-dc').value   = tariff.dataCenterFee_noVAT_month;
+  $('t-eru').value  = tariff.eruFee_noVAT_month;
+  $('t-vat').value  = Math.round(tariff.vatRate * 100);
+  renderTarifResult();
+}
+
+function renderTarifResult() {
+  const p = computePrices();
+  const t = tariff;
+  const vat = Math.round(t.vatRate * 100);
+
+  $('tarif-result').innerHTML = [
+    { l: tr('price_vt_no_vat'), v: `${fmt(p.priceVT_noVAT, 2)} ${tr('price_mwh')}`, s: `${fmt(p.priceVT_noVAT/1000, 4)} ${tr('price_kwh')}` },
+    { l: tr('price_vt_with_vat', { vat }), v: `${fmt(p.priceVT_withVAT, 2)} ${tr('price_mwh')}`, s: `${fmt(p.priceVT_withVAT/1000, 4)} ${tr('price_kwh')}`, hi: true },
+    { l: tr('price_nt_no_vat'), v: `${fmt(p.priceNT_noVAT, 2)} ${tr('price_mwh')}`, s: `${fmt(p.priceNT_noVAT/1000, 4)} ${tr('price_kwh')}` },
+    { l: tr('price_nt_with_vat', { vat }), v: `${fmt(p.priceNT_withVAT, 2)} ${tr('price_mwh')}`, s: `${fmt(p.priceNT_withVAT/1000, 4)} ${tr('price_kwh')}`, hi: true },
+    { l: tr('monthly_payment_no_vat'), v: `${fmt(p.monthlyPayment_noVAT, 2)} ${tr('per_month')}`, s: '' },
+    { l: tr('monthly_payment_with_vat', { vat }), v: `${fmt(p.monthlyPayment_withVAT, 2)} ${tr('per_month')}`, s: '', hi: true },
+  ].map(x => `
+    <div class="pv-cell ${x.hi ? 'pv-hi' : ''}">
+      <div class="pv-label">${x.l}</div>
+      <div class="pv-val">${x.v}</div>
+      ${x.s ? `<div class="pv-sub">${x.s}</div>` : ''}
+    </div>
+  `).join('');
+
+  $('tarif-formula').innerHTML =
+    `<strong>${tr('price_vt_no_vat')}</strong> = VT (${fmt(t.commodityPriceVT_noVAT_MWh,2)}) + dist. VT (${fmt(t.distributionPriceVT_noVAT_MWh,2)}) + ${tr('system_services_short')} (${fmt(t.systemServices_noVAT_MWh,2)}) + ${tr('tax_short')} (${fmt(t.energyTax_noVAT_MWh,2)}) = <strong>${fmt(p.priceVT_noVAT,2)} ${tr('price_mwh')}</strong><br>
+     <strong>${tr('price_nt_no_vat')}</strong> = NT (${fmt(t.commodityPriceNT_noVAT_MWh,2)}) + dist. NT (${fmt(t.distributionPriceNT_noVAT_MWh,2)}) + ${tr('system_services_short')} (${fmt(t.systemServices_noVAT_MWh,2)}) + ${tr('tax_short')} (${fmt(t.energyTax_noVAT_MWh,2)}) = <strong>${fmt(p.priceNT_noVAT,2)} ${tr('price_mwh')}</strong><br>
+     <strong>${tr('monthly_payment_no_vat')}</strong> = ${tr('fixed_payment')} (${fmt(t.supplierMonthlyFee_noVAT,2)}) + ${tr('breaker_short')} (${fmt(t.distributionMonthlyFee_noVAT,2)}) + OTE (${fmt(t.oteFee_noVAT_month,2)}) + DC (${fmt(t.dataCenterFee_noVAT_month,2)}) + ERU (${fmt(t.eruFee_noVAT_month,2)}) = <strong>${fmt(p.monthlyPayment_noVAT,2)} Kč</strong>`;
+}
+
+// Auto-fill fields from TARIFF_DATA lookup
+function autoFillTariff() {
+  const code    = $('t-dist').value;
+  const breaker = $('t-breaker').value;
+  const td      = TARIFF_DATA[code];
+  if (!td) return;
+
+  if (td.commodityVT != null)  $('t-com-vt').value  = td.commodityVT;
+  if (td.commodityNT != null)  $('t-com-nt').value  = td.commodityNT;
+  else                         $('t-com-nt').value  = '';
+
+  if (td.distVT != null) {
+    $('t-dist-vt').value = td.distVT;
+    $('note-dist-vt').innerHTML = `${tr('no_vat')} · <span class="badge bvt">VT</span> · ${tr('from_pricelist')}`;
+  } else {
+    $('t-dist-vt').value = '';
+    $('note-dist-vt').innerHTML = `${tr('no_vat')} · <span class="manual-tag">${tr('manual_enter')}</span>`;
+  }
+  if (td.distNT != null) {
+    $('t-dist-nt').value = td.distNT;
+    $('note-dist-nt').innerHTML = `${tr('no_vat')} · <span class="badge bnt">NT</span> · ${tr('from_pricelist')}`;
+  } else {
+    $('t-dist-nt').value = '';
+    $('note-dist-nt').innerHTML = `${tr('no_vat')} · <span class="manual-tag">${tr('manual_enter')}</span>`;
+  }
+
+  const fee = td.fees?.[breaker];
+  if (fee != null) {
+    $('t-dist-fee').value = fee;
+    $('note-dist-fee').innerHTML = tr('note_dist_fee_from_pricelist', { code });
+  } else {
+    $('t-dist-fee').value = '';
+    $('note-dist-fee').innerHTML = `${tr('no_vat')} · <span class="manual-tag">${tr('missing_rate_data', { code })}</span>`;
+  }
+  renderTarifResult();
+}
+
+async function saveTariff() {
+  tariff.distributionTariff             = $('t-dist').value;
+  tariff.breakerType                    = $('t-breaker').value;
+  tariff.supplierMonthlyFee_noVAT       = parseFloat($('t-sup-fee').value)  || 127;
+  tariff.commodityPriceVT_noVAT_MWh     = parseFloat($('t-com-vt').value)   || 0;
+  tariff.commodityPriceNT_noVAT_MWh     = parseFloat($('t-com-nt').value)   || 0;
+  tariff.distributionMonthlyFee_noVAT   = parseFloat($('t-dist-fee').value) || 0;
+  tariff.distributionPriceVT_noVAT_MWh  = parseFloat($('t-dist-vt').value)  || 0;
+  tariff.distributionPriceNT_noVAT_MWh  = parseFloat($('t-dist-nt').value)  || 0;
+  tariff.systemServices_noVAT_MWh       = parseFloat($('t-sys').value)      || 164.24;
+  tariff.energyTax_noVAT_MWh            = parseFloat($('t-tax').value)      || 28.30;
+  tariff.oteFee_noVAT_month             = parseFloat($('t-ote').value)      || 2.99;
+  tariff.dataCenterFee_noVAT_month      = parseFloat($('t-dc').value)       || 5.88;
+  tariff.eruFee_noVAT_month             = parseFloat($('t-eru').value)      || 4.00;
+  tariff.vatRate                        = (parseFloat($('t-vat').value) || 21) / 100;
+  await saveT();
+  renderTarif();
+  const m = $('tariff-ok');
+  m.style.display = 'inline';
+  setTimeout(() => m.style.display = 'none', 2000);
+}
+
+// ═══════════════════════════════════════════
+//  MODAL
+// ═══════════════════════════════════════════
+function openModal(id) {
+  editId = id || null;
+  $('modal-title').textContent = id ? tr('modal_edit') : tr('modal_add');
+  clearErr();
+  $('m-preview').classList.remove('show');
+
+  if (id) {
+    const r = readings.find(x => x.id === id);
+    $('m-date').value  = r.date;
+    $('m-vt').value    = r.vt;
+    $('m-nt').value    = r.nt ?? '';
+    $('m-notes').value = r.notes || '';
+  } else {
+    $('m-date').value  = new Date().toISOString().slice(0,10);
+    $('m-vt').value    = '';
+    $('m-nt').value    = '';
+    $('m-notes').value = '';
+  }
+  $('modal-bg').classList.add('open');
+  setTimeout(() => $('m-vt').focus(), 50);
+  updatePreview();
+}
+
+function closeModal() {
+  $('modal-bg').classList.remove('open');
+  editId = null;
+}
+
+function bgClose(e) { if (e.target === $('modal-bg')) closeModal(); }
+
+function updatePreview() {
+  const vtVal = parseFloat($('m-vt').value);
+  const ntVal = parseFloat($('m-nt').value);
+  const date  = $('m-date').value;
+  if (isNaN(vtVal) || !date) { $('m-preview').classList.remove('show'); return; }
+
+  const s = sorted().filter(r => r.id !== editId);
+  const prev = [...s].reverse().find(r => r.date < date);
+  if (!prev) { $('m-preview').classList.remove('show'); return; }
+
+  const days = daysBetween(prev.date, date);
+  const vtD  = vtVal - prev.vt;
+  const ntD  = (!isNaN(ntVal) && prev.nt != null) ? ntVal - prev.nt : 0;
+  const cost = calcCost(vtD, ntD, days);
+
+  const rows = [
+    [tr('preview_against'), fmtDate(prev.date)],
+    [tr('preview_days'), days],
+    [tr('preview_vt_usage'), fmt(vtD,1) + ' kWh'],
+    ntD ? [tr('preview_nt_usage'), fmt(ntD,1) + ' kWh'] : null,
+    [tr('preview_estimated_price'), '<strong>' + fmt(cost) + ' Kč</strong>'],
+  ].filter(Boolean);
+
+  $('m-preview-body').innerHTML = rows.map(([l,v]) =>
+    `<div class="preview-row"><span style="color:var(--g400)">${l}</span><span>${v}</span></div>`
+  ).join('');
+  $('m-preview').classList.add('show');
+}
+
+async function saveReading() {
+  clearErr();
+  const date = $('m-date').value;
+  const vt   = $('m-vt').value;
+  let ok = true;
+  if (!date) { showErr('err-date'); ok = false; }
+  if (vt === '') { showErr('err-vt'); ok = false; }
+  if (!ok) return;
+
+  const r = {
+    id:    editId || uid(),
+    date,
+    vt:    parseFloat(vt),
+    nt:    $('m-nt').value !== '' ? parseFloat($('m-nt').value) : null,
+    notes: $('m-notes').value.trim(),
+  };
+
+  if (API_MODE) {
+    window._ownUpdate?.();
+    const url    = editId ? `/api/readings/${editId}` : '/api/readings';
+    const method = editId ? 'PUT' : 'POST';
+    await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(r) });
+    await reloadReadings();
+  } else {
+    if (editId) { const idx = readings.findIndex(x => x.id === editId); readings[idx] = r; }
+    else        { readings.push(r); }
+    await saveR();
+  }
+  closeModal();
+  renderReadings();
+}
+
+async function delReading(id) {
+  const r = readings.find(x => x.id === id);
+  if (!confirm(tr('confirm_delete_reading', { date: fmtDate(r.date) }))) return;
+  if (API_MODE) {
+    window._ownUpdate?.();
+    await fetch(`/api/readings/${id}`, { method: 'DELETE' });
+    await reloadReadings();
+  } else {
+    readings = readings.filter(x => x.id !== id);
+    await saveR();
+  }
+  renderReadings();
+}
+
+// ═══════════════════════════════════════════
+//  SAMPLE DATA
+// ═══════════════════════════════════════════
+async function loadSampleData() {
+  if (!confirm(tr('confirm_sample_energy'))) return;
+  const sample = [
+    { date: '2024-01-01', vt: 12000.0, nt: 8000.0, notes: tr('sample_note_initial') },
+    { date: '2024-02-01', vt: 12215.4, nt: 8118.2, notes: '' },
+    { date: '2024-03-01', vt: 12418.7, nt: 8231.5, notes: '' },
+    { date: '2024-04-01', vt: 12592.1, nt: 8328.9, notes: '' },
+    { date: '2024-05-01', vt: 12743.8, nt: 8412.4, notes: tr('sample_note_less_heating') },
+    { date: '2024-06-01', vt: 12878.2, nt: 8486.1, notes: '' },
+    { date: '2024-07-01', vt: 13010.5, nt: 8557.3, notes: tr('sample_note_aircon') },
+    { date: '2024-08-01', vt: 13156.9, nt: 8638.2, notes: tr('sample_note_aircon') },
+    { date: '2024-09-01', vt: 13285.4, nt: 8710.8, notes: '' },
+    { date: '2024-10-01', vt: 13448.2, nt: 8802.1, notes: tr('sample_note_heating_start') },
+    { date: '2024-11-01', vt: 13698.6, nt: 8941.7, notes: '' },
+    { date: '2024-12-01', vt: 13985.3, nt: 9101.4, notes: tr('sample_note_christmas') },
+    { date: '2025-01-01', vt: 14289.7, nt: 9278.6, notes: '' },
+    { date: '2025-02-01', vt: 14512.1, nt: 9401.3, notes: '' },
+    { date: '2025-03-01', vt: 14704.8, nt: 9512.7, notes: '' },
+  ];
+  let added = 0;
+  for (const s of sample) {
+    if (!readings.find(r => r.date === s.date)) {
+      const entry = { id: uid(), ...s };
+      if (API_MODE) {
+        await fetch('/api/readings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
+      } else {
+        readings.push(entry);
+      }
+      added++;
+    }
+  }
+  if (API_MODE) await reloadReadings(); else await saveR();
+  alert(tr('sample_added', { count: added }));
+  renderReadings();
+}
+
+// ═══════════════════════════════════════════
+//  IMPORT / EXPORT
+// ═══════════════════════════════════════════
+function exportCSV() {
+  const rows = [['datum','vt_stav','nt_stav','poznamka']];
+  sorted().forEach(r => rows.push([r.date, r.vt, r.nt ?? '', r.notes || '']));
+  dl('elektrina_odecty.csv', rows.map(r => r.join(',')).join('\n'), 'text/csv');
+}
+
+function exportJSON() {
+  dl('elektrina_zaloha.json', JSON.stringify({ readings, tariff }, null, 2), 'application/json');
+}
+
+function handleImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    const text = ev.target.result;
+    const msg  = $('imp-msg');
+    try {
+      if (file.name.endsWith('.json')) {
+        const data = JSON.parse(text);
+        if (data.readings) {
+          if (API_MODE) {
+            for (const r of data.readings) await fetch('/api/readings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(r) });
+            await reloadReadings();
+          } else { readings = data.readings; await saveR(); }
+        }
+        if (data.tariff) { tariff = {...tariff, ...data.tariff}; await saveT(); }
+        msg.innerHTML = `<span style="color:var(--green)">${tr('imported_json', { count: readings.length })}</span>`;
+      } else {
+        const lines = text.trim().split('\n');
+        let added = 0, skipped = 0;
+        const start = lines[0].toLowerCase().includes('datum') ? 1 : 0;
+        for (let i = start; i < lines.length; i++) {
+          const p = lines[i].split(',');
+          if (p.length < 2) continue;
+          const date = p[0].trim();
+          const vt   = parseFloat(p[1]);
+          if (!date || isNaN(vt)) { skipped++; continue; }
+          if (readings.find(r => r.date === date)) { skipped++; continue; }
+          const entry = { id: uid(), date, vt, nt: p[2]?.trim() ? parseFloat(p[2]) : null, notes: p[3]?.trim() || '' };
+          if (API_MODE) {
+            await fetch('/api/readings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(entry) });
+          } else { readings.push(entry); }
+          added++;
+        }
+        if (API_MODE) await reloadReadings(); else await saveR();
+        msg.innerHTML = `<span style="color:var(--green)">${tr('import_added_skipped', { added, skipped: skipped ? tr('import_skipped', { count: skipped }) : '' })}</span>`;
+      }
+      e.target.value = '';
+    } catch(err) {
+      msg.innerHTML = `<span style="color:var(--red)">${tr('import_error', { message: err.message })}</span>`;
+    }
+  };
+  reader.readAsText(file);
+}
+
+async function clearAll() {
+  if (!confirm(tr('confirm_clear_energy'))) return;
+  if (API_MODE) {
+    await fetch('/api/readings', { method: 'DELETE' });
+    readings = [];
+  } else {
+    readings = [];
+    await saveR();
+  }
+  renderReadings();
+}
+
+// ═══════════════════════════════════════════
+//  DARK MODE
+// ═══════════════════════════════════════════
+function toggleDark() {
+  const isDark = document.documentElement.dataset.theme === 'dark';
+  document.documentElement.dataset.theme = isDark ? 'light' : 'dark';
+  $('dark-btn').textContent = isDark ? '🌙' : '☀️';
+  localStorage.setItem(LS_D, isDark ? '0' : '1');
+  if ($('tab-dash').classList.contains('active')) renderDash();
+}
+
+// ═══════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════
+function $(id) { return document.getElementById(id); }
+function uid() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+function fmt(n, d = 0) {
+  if (n == null || isNaN(n)) return '—';
+  return UtilityI18n.formatNumber(n, d);
+}
+function fmtDate(d) {
+  return UtilityI18n.formatDate(d);
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function dl(name, content, mime) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type: mime }));
+  a.download = name;
+  a.click();
+}
+function showErr(id) { $(id).classList.add('show'); }
+function clearErr()  { document.querySelectorAll('.err').forEach(e => e.classList.remove('show')); }
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+  if (e.key === 'Enter' && $('modal-bg').classList.contains('open') && document.activeElement.tagName !== 'TEXTAREA') {
+    e.preventDefault();
+    saveReading();
+  }
+});
+
+// ═══════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════
+function goToApp(path) {
+  AppNav.goToApp(path);
+}
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+(async () => {
+  UtilityI18n.apply(UtilityI18n.current(), PAGE_TYPE);
+  await initData();
+  renderDash();
+})();
+</script>
+</body>
+</html>

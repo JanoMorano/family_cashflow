@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔥 Plyn – Sledování spotřeby</title>
+<script src="/js/app-nav.js"></script>
+<script src="/js/app-version.js"></script>
+<script src="/js/app-version-label.js"></script>
+<script src="/js/utility-i18n.js"></script>
+<script src="js/gas-pricing.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --blue:#2563EB;--blue-l:#EFF6FF;--blue-d:#1E40AF;
+  --green:#16A34A;--green-l:#F0FDF4;
+  --red:#DC2626;--red-l:#FEF2F2;
+  --yellow:#D97706;--yellow-l:#FFFBEB;
+  --orange:#EA580C;--orange-l:#FFF7ED;--orange-d:#9A3412;
+  --g50:#F9FAFB;--g100:#F3F4F6;--g200:#E5E7EB;
+  --g400:#9CA3AF;--g600:#4B5563;--g800:#1F2937;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#EEF2FF;color:var(--g800);min-height:100vh;}
+.page{max-width:1060px;margin:0 auto;padding:20px 14px;}
+.hdr{background:linear-gradient(135deg,var(--orange-d),var(--orange));border-radius:16px;padding:22px 24px;margin-bottom:14px;color:#fff;}
+.hdr-top{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:18px;}
+.hdr h1{font-size:20px;font-weight:800;}
+.hdr-btns{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.dark-btn{background:rgba(255,255,255,.15);border:none;border-radius:6px;padding:3px 10px;font-size:14px;cursor:pointer;opacity:.86;color:#fff;transition:all .15s;line-height:1.6;}
+.dark-btn:hover{opacity:1;background:rgba(255,255,255,.25);}
+.auth-pill{background:rgba(255,255,255,.14);border-radius:999px;padding:4px 10px;color:rgba(255,255,255,.88);font-size:11px;font-weight:700;white-space:nowrap;}
+.lang-switcher{display:flex;gap:4px;align-items:center;flex-wrap:wrap;}
+.lang-btn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);border-radius:6px;color:#fff;cursor:pointer;font-size:10px;font-weight:800;line-height:1.2;padding:4px 6px;}
+.lang-btn.active,.lang-btn:hover{background:#fff;color:var(--orange-d);opacity:1;}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;}
+.kpi{background:rgba(255,255,255,.14);border-radius:10px;padding:11px 14px;}
+.kpi .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.06em;opacity:.75;margin-bottom:3px;}
+.kpi .val{font-size:21px;font-weight:800;}
+.kpi.yl .val{color:#FDE68A;}.kpi.bl .val{color:#93C5FD;}.kpi.gr .val{color:#86EFAC;}
+.tab-nav{background:#fff;border-radius:12px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);overflow-x:auto;}
+.tab-nav-inner{display:flex;border-bottom:1px solid var(--g200);}
+.tab-btn{background:none;border:none;border-bottom:3px solid transparent;padding:13px 16px;font-size:13px;font-weight:600;color:var(--g400);cursor:pointer;white-space:nowrap;transition:.15s;}
+.tab-btn:hover{color:var(--g800);}.tab-btn.active{color:var(--orange);border-bottom-color:var(--orange);}
+.card{background:#fff;border-radius:12px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);overflow:hidden;}
+.card-hd{padding:11px 18px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.card-hd.orange{background:var(--orange-l);color:var(--orange-d);}
+.card-hd.yellow{background:var(--yellow-l);color:var(--yellow);}
+.card-hd.green{background:var(--green-l);color:var(--green);}
+.card-hd.gray{background:var(--g50);color:var(--g600);}
+.card-body{padding:16px 18px;}
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:16px;}
+.chart-box{position:relative;height:240px;}
+.chart-title{font-size:11px;font-weight:700;color:var(--g600);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;}
+@media(max-width:640px){.chart-grid{grid-template-columns:1fr;}}
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead th{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--g400);padding:7px 10px;text-align:right;background:var(--g50);border-bottom:1px solid var(--g200);}
+thead th:first-child{text-align:left;}
+td{padding:8px 10px;border-bottom:1px solid var(--g100);text-align:right;font-size:13.5px;vertical-align:middle;}
+td:first-child{text-align:left;}tr:last-child td{border-bottom:none;}tbody tr:hover td{background:var(--g50);}
+.row-init td{opacity:.55;font-style:italic;}.row-warn td{background:#FFF7ED!important;}
+.td-date{font-weight:600;white-space:nowrap;}.td-notes{color:var(--g400);font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.td-act{white-space:nowrap;text-align:right;}
+.btn-ic{background:none;border:none;cursor:pointer;padding:3px 6px;border-radius:4px;color:var(--g400);font-size:14px;transition:.1s;}
+.btn-ic:hover{background:var(--g100);color:var(--g800);}.btn-ic.del:hover{background:var(--red-l);color:var(--red);}
+.no-data{text-align:center;padding:48px 20px;color:var(--g400);}
+.tbl-foot{padding:9px 10px;text-align:right;font-weight:700;font-size:13px;background:var(--g50);border-top:2px solid var(--g200);}
+.badge{display:inline-block;font-size:9.5px;padding:1px 5px;border-radius:99px;font-weight:700;flex-shrink:0;background:#FED7AA;color:var(--orange-d);}
+.bwarn{background:var(--red-l);color:var(--red);}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:.15s;font-family:inherit;}
+.btn-p{background:var(--orange);color:#fff;}.btn-p:hover{background:var(--orange-d);}
+.btn-s{background:var(--g50);color:var(--g800);border:1px solid var(--g200);}.btn-s:hover{background:var(--g100);}
+.btn-d{background:var(--red);color:#fff;}.btn-d:hover{opacity:.85;}.btn-sm{padding:4px 10px;font-size:12px;}
+.btn-add{background:none;border:1.5px dashed var(--orange);color:var(--orange);border-radius:6px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;transition:.15s;}
+.btn-add:hover{background:var(--orange-l);}
+.tab{display:none;}.tab.active{display:block;}
+.field{display:flex;flex-direction:column;gap:4px;}.fl{font-size:11px;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:.05em;}
+input,select,textarea{border:1px solid var(--g200);border-radius:7px;padding:8px 10px;font-size:14px;font-family:inherit;background:#fff;color:var(--g800);}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--orange);border-color:var(--orange);}
+.fg{display:flex;flex-direction:column;gap:12px;}.fg2{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 18px 16px;}.fg3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:0 18px 16px;}
+@media(max-width:700px){.fg2,.fg3{grid-template-columns:1fr;}}
+.field-note{font-size:11px;color:var(--g400);line-height:1.35;}
+.set-section{border-top:1px solid var(--g200);}.set-section:first-child{border-top:none;}
+.set-section h3{font-size:13px;font-weight:800;color:var(--g600);padding:16px 18px 12px;background:var(--g50);}
+.preview-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:0 18px 16px;}
+.pv-cell{border:1px solid var(--g200);border-radius:8px;padding:10px;background:var(--g50);}
+.pv-hi{background:var(--orange-l);border-color:#FDBA74;}.pv-label{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--g400);font-weight:700;margin-bottom:4px;}
+.pv-val{font-size:16px;font-weight:800;color:var(--g800);}.pv-sub{font-size:11px;color:var(--g600);margin-top:2px;}
+.tarif-formula{font-size:11px;color:var(--g400);padding:12px 18px;border-top:1px solid var(--g100);line-height:1.6;background:var(--g50);}
+.save-msg{font-size:12px;color:var(--green);margin-left:12px;display:none;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:1000;padding:16px;}
+.modal-bg.open{display:flex;}.modal{background:#fff;border-radius:14px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+.modal h3{padding:18px 20px;border-bottom:1px solid var(--g200);font-size:17px;}
+.modal .fg{padding:18px 20px;}.modal-footer{padding:14px 20px;border-top:1px solid var(--g200);display:flex;justify-content:flex-end;gap:8px;}
+.err{display:none;color:var(--red);font-size:11px;margin-top:2px;}.err.show{display:block;}
+.preview-box{display:none;background:var(--orange-l);border:1px solid #FDBA74;border-radius:8px;padding:12px;margin-top:2px;}.preview-box.show{display:block;}
+.preview-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;}
+.import-zone{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:130px;border:2px dashed var(--g200);border-radius:10px;color:var(--g400);cursor:pointer;transition:.15s;text-align:center;}
+.import-zone:hover{border-color:var(--orange);background:var(--orange-l);color:var(--orange-d);}.import-zone input{display:none;}
+.imp-msg{font-size:12px;margin-top:8px;}.code-box{background:var(--g800);color:#E5E7EB;border-radius:8px;padding:12px;font-family:'SF Mono',Consolas,monospace;font-size:12px;white-space:pre;overflow-x:auto;}
+.danger-zone{border:1px solid var(--red);background:var(--red-l);border-radius:10px;padding:14px;color:var(--red);}
+[data-theme="dark"]{--g50:#111827;--g100:#1F2937;--g200:#374151;--g400:#9CA3AF;--g600:#D1D5DB;--g800:#F9FAFB;}
+[data-theme="dark"] body{background:#0B1120;}[data-theme="dark"] .card,[data-theme="dark"] .tab-nav,[data-theme="dark"] .modal,[data-theme="dark"] input,[data-theme="dark"] select,[data-theme="dark"] textarea{background:#111827;color:var(--g800);}
+[data-theme="dark"] .set-section h3,[data-theme="dark"] .tarif-formula,[data-theme="dark"] .pv-cell{background:#0F172A;}
+</style>
+</head>
+<body data-utility="gas">
+<div class="page">
+
+<div class="hdr">
+  <div class="hdr-top">
+    <h1 data-i18n="gas_page_title">🔥 Plyn – Sledování spotřeby</h1>
+    <div class="hdr-btns">
+      <button class="dark-btn" onclick="goToApp('/')" data-i18n="nav_budget" data-i18n-title="nav_budget_title" title="Přejít na Rodinný rozpočet">📊 Rozpočet</button>
+      <button class="dark-btn" onclick="goToApp('/energy')" data-i18n="nav_energy" data-i18n-title="nav_energy_title" title="Přejít na Elektřina">⚡ Elektřina</button>
+      <button class="dark-btn" id="dark-btn" onclick="toggleDark()" data-i18n-title="dark_title" title="Tmavý / světlý režim">🌙</button>
+      <div class="lang-switcher">
+        <button class="lang-btn" data-lang="cs" onclick="setLang('cs')">CS</button>
+        <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+        <button class="lang-btn" data-lang="sk" onclick="setLang('sk')">SK</button>
+        <button class="lang-btn" data-lang="de" onclick="setLang('de')">DE</button>
+        <button class="lang-btn" data-lang="pl" onclick="setLang('pl')">PL</button>
+      </div>
+      <span class="auth-pill" data-app-version>Family Cashflow 1.1</span>
+      <span class="auth-pill" id="auth-user">—</span>
+      <button class="dark-btn" onclick="logout()" data-i18n-title="logout_title" title="Odhlásit">⏻</button>
+    </div>
+  </div>
+  <div class="kpi-row">
+    <div class="kpi yl"><div class="lbl" data-i18n="kpi_month_estimate">Tento měsíc (odhad)</div><div class="val" id="kpi-month">—</div></div>
+    <div class="kpi"><div class="lbl" data-i18n="kpi_avg_month">Průměr / měsíc</div><div class="val" id="kpi-avg-cost">—</div></div>
+    <div class="kpi"><div class="lbl" data-i18n="kpi_avg_m3">Průměr m³</div><div class="val" id="kpi-avg-m3">—</div></div>
+    <div class="kpi"><div class="lbl" data-i18n="kpi_last">Poslední stav</div><div class="val" id="kpi-last">—</div></div>
+    <div class="kpi"><div class="lbl" data-i18n="kpi_span">Sledováno</div><div class="val" id="kpi-span">—</div></div>
+    <div class="kpi bl"><div class="lbl" data-i18n="kpi_price_m3">Cena 1 m³</div><div class="val" id="kpi-price-m3">—</div></div>
+    <div class="kpi bl"><div class="lbl" data-i18n="kpi_monthly_fee">Měs. paušál</div><div class="val" id="kpi-monthly-fee">—</div></div>
+  </div>
+</div>
+
+<div class="tab-nav">
+  <div class="tab-nav-inner">
+    <button class="tab-btn active" id="tab-btn-dash" onclick="showTab('dash')" data-i18n="tab_overview">📊 Přehled</button>
+    <button class="tab-btn" id="tab-btn-read" onclick="showTab('read')" data-i18n="tab_readings">📋 Odečty</button>
+    <button class="tab-btn" id="tab-btn-tarif" onclick="showTab('tarif')" data-i18n="tab_tariff">⚙️ Tarif</button>
+    <button class="tab-btn" id="tab-btn-io" onclick="showTab('io')" data-i18n="tab_io">📥 Import/Export</button>
+  </div>
+</div>
+
+<div class="tab active" id="tab-dash">
+  <div id="dash-empty" style="display:none;" class="card">
+    <div class="no-data">
+      <div style="font-size:48px;margin-bottom:12px;">🔥</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:8px;" data-i18n="empty_title">Zatím žádná data</div>
+      <div style="margin-bottom:20px;color:var(--g400);" data-i18n="empty_desc">Přidejte alespoň dva odečty, aby se zobrazily grafy.</div>
+      <button class="btn btn-p" onclick="showTab('read'); openModal()" data-i18n="empty_first_reading">+ Přidat první odečet</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hd orange" data-i18n="monthly_usage_costs">📊 Měsíční spotřeba &amp; náklady</div>
+    <div class="chart-grid">
+      <div class="chart-box"><div class="chart-title" data-i18n="gas_consumption_chart">Spotřeba plynu m³</div><canvas id="ch-cons"></canvas></div>
+      <div class="chart-box"><div class="chart-title" data-i18n="gas_cost_chart">Náklady (Kč)</div><canvas id="ch-cost"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<div class="tab" id="tab-read">
+  <div class="card">
+    <div class="card-hd yellow">
+      <span data-i18n="gas_readings_title">📋 Odečty plynoměru</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+        <button class="btn btn-s btn-sm" onclick="loadSampleData()" data-i18n="gas_sample_data">🎲 Data z plyn.xlsx</button>
+        <button class="btn btn-s btn-sm" onclick="copyNextMonth()" data-i18n="copy_next_month">➜ Kopírovat další měsíc</button>
+        <button class="btn-add" onclick="openModal()" data-i18n="add_reading">+ Přidat odečet</button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left" data-i18n="th_date">Datum</th><th data-i18n="th_gas_state">Stav (m³)</th><th data-i18n="th_consumption">Spotřeba</th><th data-i18n="th_days">Dny</th><th data-i18n="th_cost_czk">Náklady (Kč)</th><th data-i18n="th_note">Poznámka</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="readings-body"></tbody>
+      </table>
+      <div id="tbl-foot" style="display:none;" class="tbl-foot"></div>
+    </div>
+  </div>
+</div>
+
+<div class="tab" id="tab-tarif">
+  <div class="card">
+    <div class="card-hd gray" data-i18n="gas_tariff_title">⚙️ Tarif plynu</div>
+    <div class="set-section">
+      <h3 data-i18n="gas_supplier_pricelist">🔥 Dodavatel a ceník</h3>
+      <div class="fg3">
+        <div class="field"><label class="fl" data-i18n="supplier">Dodavatel</label><input id="t-supplier" placeholder="INNOGY"></div>
+        <div class="field"><label class="fl" data-i18n="product">Produkt</label><input id="t-product" placeholder="plyn Optimal 36"></div>
+        <div class="field"><label class="fl" data-i18n="price_year">Ceníkový rok</label><input type="number" id="t-year" step="1" min="2026" placeholder="2026"></div>
+        <div class="field"><label class="fl" data-i18n="kwh_per_m3">1 m³ = kWh</label><input type="number" id="t-kwhm3" step="0.01" placeholder="10.69"><div class="field-note" data-i18n="note_innogy_conversion">dle innogy.pdf: 10,69 kWh/m³</div></div>
+        <div class="field"><label class="fl" data-i18n="vat">DPH (%)</label><input type="number" id="t-vat" step="0.1" min="0" max="100" placeholder="21"></div>
+      </div>
+      <div style="display:flex;align-items:center;padding:0 18px 16px;">
+        <button class="btn btn-p" onclick="saveTariff()" data-i18n="save_settings">💾 Uložit nastavení</button>
+        <span class="save-msg" id="tariff-ok" data-i18n="saved">✓ Uloženo</span>
+      </div>
+    </div>
+    <div class="set-section">
+      <h3 data-i18n="gas_result_prices">💰 Výsledné ceny</h3>
+      <div class="preview-grid" id="tarif-result"></div>
+      <div class="tarif-formula" id="tarif-formula"></div>
+    </div>
+  </div>
+</div>
+
+<div class="tab" id="tab-io">
+  <div class="card">
+    <div class="card-hd gray" data-i18n="io_title">📥 Import a Export dat</div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:800px;margin-bottom:28px;">
+        <div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:12px;" data-i18n="export_title">📤 Export</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button class="btn btn-s" onclick="exportCSV()" data-i18n="export_csv_readings">📄 Export CSV (odečty)</button>
+            <button class="btn btn-s" onclick="exportJSON()" data-i18n="export_json_all">📦 Export JSON (vše)</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:12px;" data-i18n="import_title">📥 Import CSV / JSON</div>
+          <label class="import-zone" for="import-file">
+            <div style="font-size:36px;margin-bottom:8px;">📄</div>
+            <div style="font-weight:600;" data-i18n="drop_file">Klikněte nebo přetáhněte soubor</div>
+            <div style="font-size:12px;margin-top:4px;" data-i18n="csv_or_json">.csv nebo .json</div>
+            <input type="file" id="import-file" accept=".csv,.json" onchange="handleImport(event)">
+          </label>
+          <div class="imp-msg" id="imp-msg"></div>
+        </div>
+      </div>
+      <div style="margin-bottom:28px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px;" data-i18n="csv_import_format">Formát CSV pro import</div>
+        <div style="font-size:12px;color:var(--g400);margin-bottom:4px;" data-i18n="header_optional">První řádek záhlaví je volitelný.</div>
+        <div class="code-box">datum,stav_m3,poznamka
+2024-05-16,118,Počáteční stav
+2024-06-08,150,
+2024-07-19,179,</div>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px;" data-i18n="danger_title">⚠️ Nebezpečná zóna</div>
+        <div class="danger-zone">
+          <div style="font-size:13px;margin-bottom:12px;" data-i18n="danger_desc">Smaže všechna uložená data (odečty). Tarif zůstane zachován.</div>
+          <button class="btn btn-d btn-sm" onclick="clearAll()" data-i18n="clear_all">🗑️ Smazat všechna data</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="modal-bg" id="modal-bg" onclick="bgClose(event)">
+  <div class="modal">
+    <h3 id="modal-title" data-i18n="modal_add">Přidat odečet</h3>
+    <div class="fg">
+      <div class="field"><label class="fl" data-i18n="reading_date">Datum odečtu *</label><input type="date" id="m-date"><div class="err" id="err-date" data-i18n="err_date">Zadejte datum</div></div>
+      <div class="field"><label class="fl" data-i18n="gas_state_required">Stav plynoměru (m³) *</label><input type="number" id="m-vt" step="0.1" min="0" placeholder="118.0" oninput="updatePreview()"><div class="err" id="err-vt" data-i18n="err_gas_state">Zadejte stav plynoměru</div></div>
+      <div class="field"><label class="fl" data-i18n="note">Poznámka</label><textarea id="m-notes" rows="2" placeholder="Volitelná poznámka…" data-i18n-placeholder="note_placeholder"></textarea></div>
+      <div class="preview-box" id="m-preview">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--g400);margin-bottom:8px;" data-i18n="period_calc">Výpočet za toto období</div>
+        <div id="m-preview-body"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-s" onclick="closeModal()" data-i18n="cancel">Zrušit</button><button class="btn btn-p" onclick="saveReading()" data-i18n="save">💾 Uložit</button></div>
+  </div>
+</div>
+
+<script>
+const GAS_SAMPLE = [
+  ['2024-05-16',118,'Počáteční stav z plyn.xlsx'],
+  ['2024-06-08',150,''],['2024-07-19',179,''],['2024-08-01',190,''],['2024-09-18',217,''],['2024-10-01',227,''],['2024-11-03',287,''],['2024-12-02',386,''],
+  ['2025-01-02',486,''],['2025-02-02',625,''],['2025-03-03',723,''],['2025-04-01',783,'Odhad'],['2025-05-01',845,'Odhad'],['2025-06-05',896,''],
+  ['2025-06-30',915,''],['2025-08-12',939,''],['2025-09-08',960,''],['2025-10-02',984,''],['2025-11-01',1044,''],['2025-11-30',1145,''],
+  ['2026-01-05',1275,''],['2026-02-05',1390,''],['2026-03-05',1497,'']
+];
+const TARIFF_DEFAULT = GasPricing.INNOGY_GAS_TARIFF_2026;
+let readings = [];
+let tariff = GasPricing.cloneTariff(TARIFF_DEFAULT);
+let editId = null;
+let charts = {};
+let API_MODE = false;
+const LS_R = 'gas_readings';
+const LS_T = 'gas_tariff';
+const LS_D = 'gas_dark';
+const PAGE_TYPE = 'gas';
+
+function tr(key, vars = {}) { return UtilityI18n.t(key, vars); }
+function setLang(code) {
+  UtilityI18n.apply(code, PAGE_TYPE);
+  if ($('tab-dash').classList.contains('active')) renderDash();
+  if ($('tab-read').classList.contains('active')) renderReadings();
+  if ($('tab-tarif').classList.contains('active')) renderTarif();
+  if ($('modal-bg').classList.contains('open')) updatePreview();
+}
+
+async function initAuthUi(){
+  try{
+    const res=await fetch('/api/auth/me');
+    if(!res.ok){window.location.href='/login?next='+encodeURIComponent(window.location.pathname+window.location.search);return;}
+    const data=await res.json();
+    const el=$('auth-user');
+    if(el)el.textContent=data.user?.displayName||data.user?.username||'—';
+  }catch{
+    window.location.href='/login?next='+encodeURIComponent(window.location.pathname+window.location.search);
+  }
+}
+async function logout(){try{await fetch('/api/auth/logout',{method:'POST'});}catch{}window.location.href='/login';}
+
+async function initData(){
+  await initAuthUi();
+  try{const r=await fetch('/api/gas/readings',{signal:AbortSignal.timeout(800)});if(r.ok){API_MODE=true;console.info('🔥 gas API mode');}}catch(e){}
+  if(API_MODE){
+    try{readings=await fetch('/api/gas/readings').then(r=>r.json());}catch(e){}
+    try{const t=await fetch('/api/gas/tariff').then(r=>r.json());if(t)tariff=GasPricing.normalizeGasTariff(t);}catch(e){}
+  }else{
+    try{const r=localStorage.getItem(LS_R);if(r)readings=JSON.parse(r);}catch(e){}
+    try{const t=localStorage.getItem(LS_T);if(t)tariff=GasPricing.normalizeGasTariff(JSON.parse(t));}catch(e){}
+  }
+  if(localStorage.getItem(LS_D)==='1'){document.documentElement.dataset.theme='dark';$('dark-btn').textContent='☀️';}
+  if(API_MODE){
+    const es=new EventSource('/api/events');
+    let myUpdate=false;
+    es.onmessage=async e=>{
+      if(e.data==='connected')return;
+      if(myUpdate){myUpdate=false;return;}
+      if(e.data==='gas'){
+        readings=await fetch('/api/gas/readings').then(r=>r.json());
+        const t=await fetch('/api/gas/tariff').then(r=>r.json());
+        if(t)tariff=GasPricing.normalizeGasTariff(t);
+        renderDash();showToast(tr('toast_gas_updated'));
+      }
+    };
+    window._ownUpdate=()=>{myUpdate=true;};
+  }
+}
+async function saveR(){if(!API_MODE)localStorage.setItem(LS_R,JSON.stringify(readings));}
+async function saveT(){
+  if(API_MODE)await fetch('/api/gas/tariff',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(tariff)});
+  else localStorage.setItem(LS_T,JSON.stringify(tariff));
+}
+async function reloadReadings(){if(API_MODE)readings=await fetch('/api/gas/readings').then(r=>r.json());}
+
+function sorted(){return [...readings].sort((a,b)=>a.date.localeCompare(b.date));}
+function daysBetween(d1,d2){return Math.max(1,Math.round((new Date(d2)-new Date(d1))/86400000));}
+function currentAnnualKwh(){
+  const annual=GasPricing.annualKwhFromReadings(sorted(),tariff.conversionKwhPerM3||tariff.kwhPerM3||TARIFF_DEFAULT.conversionKwhPerM3);
+  return annual||tariff.defaultAnnualKwh||TARIFF_DEFAULT.defaultAnnualKwh;
+}
+function computePrices(){
+  return GasPricing.computeGasPrices(tariff,currentAnnualKwh());
+}
+function calcCost(m3,days){
+  return GasPricing.calculateGasCost(m3,days,tariff,currentAnnualKwh());
+}
+function getIntervals(){
+  const s=sorted();
+  return s.slice(1).map((curr,i)=>{
+    const prev=s[i],days=daysBetween(prev.date,curr.date),m3=curr.vt-prev.vt,cost=calcCost(m3,days);
+    return {curr,prev,days,m3,cost,warn:m3<0};
+  });
+}
+function monthlyAgg(){
+  const map={};
+  for(const iv of getIntervals()){
+    const m=iv.curr.date.slice(0,7);
+    if(!map[m])map[m]={m3:0,cost:0,days:0};
+    map[m].m3+=iv.m3;map[m].cost+=iv.cost;map[m].days+=iv.days;
+  }
+  const months=Object.keys(map).sort();
+  return {months,map};
+}
+
+function showTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  $('tab-'+name).classList.add('active');$('tab-btn-'+name).classList.add('active');
+  if(name==='dash')renderDash();if(name==='read')renderReadings();if(name==='tarif')renderTarif();
+}
+function showToast(msg){
+  let t=$('sse-toast');
+  if(!t){t=document.createElement('div');t.id='sse-toast';t.style.cssText='position:fixed;bottom:20px;right:20px;background:var(--orange);color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;z-index:9999;opacity:0;transition:opacity .3s';document.body.appendChild(t);}
+  t.textContent=msg;t.style.opacity='1';clearTimeout(t._hide);t._hide=setTimeout(()=>t.style.opacity='0',2500);
+}
+
+function renderDash(){
+  const {months,map}=monthlyAgg();
+  const hasData=months.length>0;
+  $('dash-empty').style.display=hasData?'none':'';
+  const prices=computePrices();
+  $('kpi-price-m3').textContent=fmt(prices.priceM3WithVat,2);
+  $('kpi-monthly-fee').textContent=fmt(prices.monthlyFeeWithVat,0);
+  const s=sorted();
+  $('kpi-last').textContent=s.length?fmt(s[s.length-1].vt,0):'—';
+  $('kpi-span').textContent=s.length;
+  if(!hasData)return;
+  const avgCost=months.reduce((x,m)=>x+map[m].cost,0)/months.length;
+  const avgM3=months.reduce((x,m)=>x+map[m].m3,0)/months.length;
+  const nowM=new Date().toISOString().slice(0,7);
+  $('kpi-month').textContent=map[nowM]?fmt(map[nowM].cost):'~'+fmt(avgCost);
+  $('kpi-avg-cost').textContent=fmt(avgCost);
+  $('kpi-avg-m3').textContent=fmt(avgM3,0);
+  drawCharts(months.slice(-24),map);
+}
+function drawCharts(months,map){
+  const labels=months.map(m=>{const[y,mo]=m.split('-');return mo+'/'+y.slice(2);});
+  if(charts.cons)charts.cons.destroy();
+  charts.cons=new Chart($('ch-cons'),{type:'bar',data:{labels,datasets:[{label:'m³',data:months.map(m=>+map[m].m3.toFixed(1)),backgroundColor:'#FDBA74',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+  if(charts.cost)charts.cost.destroy();
+  charts.cost=new Chart($('ch-cost'),{type:'line',data:{labels,datasets:[{label:'Kč',data:months.map(m=>Math.round(map[m].cost)),borderColor:'#EA580C',backgroundColor:'rgba(234,88,12,.12)',tension:.3,fill:true,pointRadius:4,pointHoverRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false}}}});
+}
+
+function renderReadings(){
+  const s=sorted(),ivs=getIntervals(),ivMap={};ivs.forEach(iv=>ivMap[iv.curr.id]=iv);
+  const tbody=$('readings-body');
+  if(!s.length){tbody.innerHTML=`<tr><td colspan="7" class="no-data">${tr('empty_readings_gas')}<br><br><button class="btn btn-p btn-sm" onclick="openModal()">${tr('add_reading')}</button></td></tr>`;$('tbl-foot').style.display='none';return;}
+  tbody.innerHTML=s.map((r,i)=>{
+    const iv=ivMap[r.id],isFirst=i===0,badge=iv?`<span class="badge ${iv.m3<0?'bwarn':''}">+${fmt(iv.m3,1)}</span>`:'—';
+    return `<tr class="${isFirst?'row-init':(iv?.warn?'row-warn':'')}">
+      <td class="td-date">${fmtDate(r.date)}</td><td>${fmt(r.vt,1)}</td><td>${badge}</td><td>${iv?iv.days:'—'}</td><td>${iv?`<strong>${fmt(iv.cost)}</strong>`:'—'}</td>
+      <td class="td-notes" title="${esc(r.notes||'')}">${esc(r.notes||'')}</td>
+      <td class="td-act"><button class="btn-ic" onclick="openModal('${r.id}')" title="${tr('edit_title')}">✏️</button><button class="btn-ic del" onclick="delReading('${r.id}')" title="${tr('delete_title')}">🗑️</button></td>
+    </tr>`;
+  }).join('');
+  const totalCost=ivs.reduce((x,iv)=>x+iv.cost,0),totalM3=ivs.reduce((x,iv)=>x+iv.m3,0),totalDays=s.length>=2?daysBetween(s[0].date,s[s.length-1].date):0;
+  $('tbl-foot').style.display=ivs.length?'':'none';
+  $('tbl-foot').innerHTML=`${tr('footer_total')}: ${totalDays} ${tr('footer_days')} &nbsp;|&nbsp; ${tr('footer_consumption')}: ${fmt(totalM3,0)} m³ &nbsp;|&nbsp; 💰 ${fmt(totalCost)} Kč`;
+}
+
+function renderTarif(){
+  $('t-supplier').value=tariff.supplier||'INNOGY';
+  $('t-product').value=tariff.product||'plyn Optimal 36';
+  $('t-year').value=tariff.priceYear||2026;
+  $('t-kwhm3').value=tariff.conversionKwhPerM3||TARIFF_DEFAULT.conversionKwhPerM3;
+  $('t-vat').value=Math.round((tariff.vatRate??TARIFF_DEFAULT.vatRate)*100);
+  renderTarifResult();
+}
+function renderTarifResult(){
+  const p=computePrices(),vat=Math.round(tariff.vatRate*100),band=p.band,annual=currentAnnualKwh();
+  $('tarif-result').innerHTML=[
+    {l:tr('gas_supplier'),v:tariff.supplier||'—',s:''},
+    {l:tr('gas_product'),v:tariff.product||'—',s:`${tariff.priceYear||2026} • ${tariff.distributionArea||tr('gasnet')}`},
+    {l:tr('annual_band'),v:band.label||'—',s:tr('per_year_kwh',{value:fmt(annual,0)}),hi:true},
+    {l:tr('price_kwh_vat'),v:fmt(p.unitKwhWithVat,5)+' Kč',s:tr('no_vat_value',{value:fmt(p.unitKwhNoVat,5)})},
+    {l:tr('price_m3_vat'),v:fmt(p.priceM3WithVat,2)+' Kč',s:`${fmt(p.conversionKwhPerM3,2)} kWh/m³`,hi:true},
+    {l:tr('monthly_fee_vat',{vat}),v:fmt(p.monthlyFeeWithVat,2)+' Kč/měsíc',s:tr('no_vat_value',{value:fmt(p.monthlyFeeNoVat,2)}),hi:true},
+  ].map(x=>`<div class="pv-cell ${x.hi?'pv-hi':''}"><div class="pv-label">${x.l}</div><div class="pv-val">${x.v}</div>${x.s?`<div class="pv-sub">${x.s}</div>`:''}</div>`).join('');
+  $('tarif-formula').innerHTML=`<strong>${tr('formula_gas_title')}</strong> (${tariff.product||'plyn Optimal 36'}, ${tariff.priceYear||2026}): ${tr('annual_estimate',{band:`<strong>${esc(band.label||'—')}</strong>`,annual:fmt(annual,0)})}.<br><strong>${tr('gas_formula_unit_no_vat')}</strong> = ${tr('gas_consumption_chart').toLowerCase()} ${fmt(band.commodityKwhNoVat||0,5)} + distribuce ${fmt(band.distributionKwhNoVat||0,5)} + OTE ${fmt(band.oteKwhNoVat||0,5)} = <strong>${fmt(p.unitKwhNoVat,5)} Kč/kWh</strong>; s DPH ${vat} % = <strong>${fmt(p.unitKwhWithVat,5)} Kč/kWh</strong>.<br><strong>${tr('gas_formula_m3_vat')}</strong> = ${fmt(p.unitKwhWithVat,5)} × ${fmt(p.conversionKwhPerM3,2)} = <strong>${fmt(p.priceM3WithVat,2)} Kč/m³</strong>.<br><strong>${tr('gas_formula_monthly_vat')}</strong> = (${fmt(band.supplierMonthlyNoVat||0,2)} + ${fmt(band.capacityMonthlyNoVat||0,2)}) × ${(1+tariff.vatRate).toFixed(2)} = <strong>${fmt(p.monthlyFeeWithVat,2)} Kč</strong>.`;
+}
+async function saveTariff(){
+  tariff=GasPricing.normalizeGasTariff({
+    ...tariff,
+    supplier:$('t-supplier').value||'INNOGY',
+    product:$('t-product').value||'plyn Optimal 36',
+    priceYear:parseInt($('t-year').value,10)||2026,
+    conversionKwhPerM3:parseFloat($('t-kwhm3').value)||TARIFF_DEFAULT.conversionKwhPerM3,
+    vatRate:(parseFloat($('t-vat').value)||21)/100,
+  });
+  await saveT();renderTarif();const m=$('tariff-ok');m.style.display='inline';setTimeout(()=>m.style.display='none',2000);
+}
+
+function openModal(id){
+  editId=id||null;$('modal-title').textContent=id?tr('modal_edit'):tr('modal_add');clearErr();$('m-preview').classList.remove('show');
+  if(id){const r=readings.find(x=>x.id===id);$('m-date').value=r.date;$('m-vt').value=r.vt;$('m-notes').value=r.notes||'';}
+  else{$('m-date').value=new Date().toISOString().slice(0,10);$('m-vt').value='';$('m-notes').value='';}
+  $('modal-bg').classList.add('open');setTimeout(()=>$('m-vt').focus(),50);updatePreview();
+}
+function closeModal(){$('modal-bg').classList.remove('open');editId=null;}
+function bgClose(e){if(e.target===$('modal-bg'))closeModal();}
+function updatePreview(){
+  const val=parseFloat($('m-vt').value),date=$('m-date').value;
+  if(isNaN(val)||!date){$('m-preview').classList.remove('show');return;}
+  const s=sorted().filter(r=>r.id!==editId),prev=[...s].reverse().find(r=>r.date<date);
+  if(!prev){$('m-preview').classList.remove('show');return;}
+  const days=daysBetween(prev.date,date),m3=val-prev.vt,cost=calcCost(m3,days);
+  $('m-preview-body').innerHTML=[
+    [tr('preview_against'),fmtDate(prev.date)],[tr('preview_days'),days],[tr('preview_consumption'),fmt(m3,1)+' m³'],[tr('preview_estimated_price'),'<strong>'+fmt(cost)+' Kč</strong>']
+  ].map(([l,v])=>`<div class="preview-row"><span style="color:var(--g400)">${l}</span><span>${v}</span></div>`).join('');
+  $('m-preview').classList.add('show');
+}
+async function saveReading(){
+  clearErr();const date=$('m-date').value,vt=$('m-vt').value;let ok=true;
+  if(!date){showErr('err-date');ok=false;}if(vt===''){showErr('err-vt');ok=false;}if(!ok)return;
+  const r={id:editId||uid(),date,vt:parseFloat(vt),nt:null,notes:$('m-notes').value.trim()};
+  if(API_MODE){window._ownUpdate?.();const url=editId?`/api/gas/readings/${editId}`:'/api/gas/readings';const method=editId?'PUT':'POST';await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(r)});await reloadReadings();}
+  else{if(editId){const idx=readings.findIndex(x=>x.id===editId);readings[idx]=r;}else readings.push(r);await saveR();}
+  closeModal();renderReadings();renderDash();
+}
+async function delReading(id){
+  const r=readings.find(x=>x.id===id);if(!confirm(tr('confirm_delete_reading',{date:fmtDate(r.date)})))return;
+  if(API_MODE){window._ownUpdate?.();await fetch(`/api/gas/readings/${id}`,{method:'DELETE'});await reloadReadings();}
+  else{readings=readings.filter(x=>x.id!==id);await saveR();}
+  renderReadings();renderDash();
+}
+async function copyNextMonth(){
+  const s=sorted(),ivs=getIntervals();
+  if(s.length<2||!ivs.length){alert(tr('confirm_copy_min'));return;}
+  const last=s[s.length-1],avg=ivs.reduce((x,iv)=>x+Math.max(0,iv.m3),0)/ivs.length;
+  const d=new Date(last.date);d.setMonth(d.getMonth()+1);
+  const entry={id:uid(),date:d.toISOString().slice(0,10),vt:Math.round((last.vt+avg)*10)/10,nt:null,notes:tr('gas_copy_note')};
+  if(API_MODE){await fetch('/api/gas/readings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(entry)});await reloadReadings();}
+  else{readings.push(entry);await saveR();}
+  renderReadings();renderDash();
+}
+
+async function loadSampleData(){
+  if(!confirm(tr('confirm_sample_gas')))return;
+  let added=0;
+  for(const [date,vt,notes] of GAS_SAMPLE){
+    if(!readings.find(r=>r.date===date)){
+      const entry={id:uid(),date,vt,nt:null,notes};
+      if(API_MODE)await fetch('/api/gas/readings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(entry)});
+      else readings.push(entry);
+      added++;
+    }
+  }
+  if(API_MODE)await reloadReadings();else await saveR();
+  alert(tr('sample_added_readings',{count:added}));renderReadings();renderDash();
+}
+function exportCSV(){
+  const rows=[['datum','stav_m3','poznamka']];sorted().forEach(r=>rows.push([r.date,r.vt,r.notes||'']));
+  dl('plyn_odecty.csv',rows.map(r=>r.map(csv).join(',')).join('\n'),'text/csv');
+}
+function exportJSON(){dl('plyn_zaloha.json',JSON.stringify({readings,tariff},null,2),'application/json');}
+function handleImport(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    const text=ev.target.result,msg=$('imp-msg');
+    try{
+      if(file.name.endsWith('.json')){
+        const data=JSON.parse(text);
+        if(data.readings){
+          if(API_MODE){for(const r of data.readings)await fetch('/api/gas/readings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...r,nt:null})});await reloadReadings();}
+          else{readings=data.readings.map(r=>({...r,nt:null}));await saveR();}
+        }
+        if(data.tariff){tariff=GasPricing.normalizeGasTariff({...tariff,...data.tariff});await saveT();}
+        msg.innerHTML=`<span style="color:var(--green)">${tr('imported_json',{count:readings.length})}</span>`;
+      }else{
+        const lines=text.trim().split(/\r?\n/);let added=0,skipped=0;const start=lines[0].toLowerCase().includes('datum')?1:0;
+        for(let i=start;i<lines.length;i++){
+          const p=parseCsvLine(lines[i]);const date=p[0]?.trim(),vt=parseFloat(p[1]);
+          if(!date||isNaN(vt)){skipped++;continue;}if(readings.find(r=>r.date===date)){skipped++;continue;}
+          const entry={id:uid(),date,vt,nt:null,notes:p[2]?.trim()||''};
+          if(API_MODE)await fetch('/api/gas/readings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(entry)});
+          else readings.push(entry);
+          added++;
+        }
+        if(API_MODE)await reloadReadings();else await saveR();
+        msg.innerHTML=`<span style="color:var(--green)">${tr('import_added_skipped',{added,skipped:skipped?tr('import_skipped',{count:skipped}):''})}</span>`;
+      }
+      e.target.value='';renderReadings();renderDash();
+    }catch(err){msg.innerHTML=`<span style="color:var(--red)">${tr('import_error',{message:err.message})}</span>`;}
+  };
+  reader.readAsText(file);
+}
+async function clearAll(){
+  if(!confirm(tr('confirm_clear_gas')))return;
+  if(API_MODE){await fetch('/api/gas/readings',{method:'DELETE'});readings=[];}else{readings=[];await saveR();}
+  renderReadings();renderDash();
+}
+function toggleDark(){const isDark=document.documentElement.dataset.theme==='dark';document.documentElement.dataset.theme=isDark?'light':'dark';$('dark-btn').textContent=isDark?'🌙':'☀️';localStorage.setItem(LS_D,isDark?'0':'1');if($('tab-dash').classList.contains('active'))renderDash();}
+function $(id){return document.getElementById(id);}
+function uid(){return Math.random().toString(36).slice(2)+Date.now().toString(36);}
+function fmt(n,d=0){return UtilityI18n.formatNumber(n,d);}
+function fmtDate(d){return UtilityI18n.formatDate(d);}
+function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function csv(v){const s=String(v??'');return /[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s;}
+function parseCsvLine(line){const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'&&line[i+1]==='"'){cur+='"';i++;}else if(ch==='"')q=!q;else if(ch===','&&!q){out.push(cur);cur='';}else cur+=ch;}out.push(cur);return out;}
+function dl(name,content,mime){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:mime}));a.download=name;a.click();}
+function showErr(id){$(id).classList.add('show');}
+function clearErr(){document.querySelectorAll('.err').forEach(e=>e.classList.remove('show'));}
+function goToApp(path){AppNav.goToApp(path);}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();if(e.key==='Enter'&&$('modal-bg').classList.contains('open')&&document.activeElement.tagName!=='TEXTAREA'){e.preventDefault();saveReading();}});
+(async()=>{UtilityI18n.apply(UtilityI18n.current(),PAGE_TYPE);await initData();renderDash();})();
+</script>
+</body>
+</html>

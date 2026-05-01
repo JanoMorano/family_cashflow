@@ -1,0 +1,16 @@
+services:
+  family_cashflow:
+    image: family_cashflow:latest
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      # Format: username:password:Display Name[,username2:password2:Display Name]
+      APP_USERS: ${APP_USERS:-admin:admin:Admin,demo:demo:Demo}
+    volumes:
+      - family_cashflow_data:/data
+    restart: unless-stopped
+
+volumes:
+  family_cashflow_data:
+    driver: local

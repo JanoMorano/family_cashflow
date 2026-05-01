@@ -1,0 +1,7 @@
+node_modules
+dist
+*.db
+.env
+.DS_Store
+family_cashflow.tar
+family_cashflow_v*.tar.gz

@@ -1,0 +1,18 @@
+version: '3.8'
+
+# Paste this file into Portainer → Stacks → Add stack → Web editor
+# Run build.sh on the server first (see build.sh)
+
+services:
+  family_cashflow:
+    image: family_cashflow:latest   # image built via build.sh
+    ports:
+      - "3000:3000"
+    environment:
+      APP_USERS: ${APP_USERS:-admin:admin:Admin,demo:demo:Demo}
+    volumes:
+      - family_cashflow_data:/data
+    restart: unless-stopped
+
+volumes:
+  family_cashflow_data:

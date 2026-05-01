@@ -1,0 +1,16 @@
+version: '2'
+
+# For Container Station on QNAP — use this file
+# The image must be imported first (see build-and-export.sh)
+
+services:
+  family_cashflow:
+    image: family_cashflow:latest
+    ports:
+      - "3000:3000"
+    environment:
+      APP_USERS: ${APP_USERS:-admin:admin:Admin,demo:demo:Demo}
+    volumes:
+      - /share/Container/family_cashflow-data:/data   # path on the QNAP disk
+    restart: unless-stopped
+    container_name: family_cashflow
