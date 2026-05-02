@@ -1,4 +1,4 @@
-# 🏠 Family Cashflow 1.1
+# 🏠 Family Cashflow 1.1.1
 
 Interactive family budget calculator with login, simultaneous editing support, live charts, savings tracker, electricity and gas tracking, and persistent backend.
 Supports **5 languages**: 🇨🇿 Czech · 🇬🇧 English · 🇸🇰 Slovak · 🇩🇪 German · 🇵🇱 Polish
@@ -46,7 +46,7 @@ Default accounts:
    ```bash
    sh build-and-export.sh
    ```
-2. Import `family_cashflow_v1.1.0.tar.gz` into your NAS/server container manager.
+2. Import `family_cashflow_v1.1.1.tar.gz` into your NAS/server container manager.
    The version in the filename comes from `package.json`.
 3. Deploy using `docker-compose.portainer.yml`
 
@@ -63,10 +63,10 @@ The source of truth for the app version is `package.json`.
 For the visible app label, use npm semver with a patch zero:
 
 ```json
-"version": "1.1.0"
+"version": "1.1.1"
 ```
 
-The build displays this as **Family Cashflow 1.1** and regenerates
+The build displays this as **Family Cashflow 1.1.1** and regenerates
 `public/js/app-version.js` automatically:
 
 ```bash

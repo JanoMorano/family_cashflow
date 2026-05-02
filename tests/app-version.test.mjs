@@ -7,10 +7,10 @@ const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 test('build exposes the package version as the visible Family Cashflow label', () => {
   const source = fs.readFileSync('public/js/app-version.js', 'utf8');
 
-  assert.equal(pkg.version, '1.1.0');
-  assert.match(source, /version:\s*"1\.1\.0"/);
-  assert.match(source, /displayVersion:\s*"1\.1"/);
-  assert.match(source, /label:\s*"Family Cashflow 1\.1"/);
+  assert.equal(pkg.version, '1.1.1');
+  assert.match(source, /version:\s*"1\.1\.1"/);
+  assert.match(source, /displayVersion:\s*"1\.1\.1"/);
+  assert.match(source, /label:\s*"Family Cashflow 1\.1\.1"/);
 });
 
 test('main pages include a visible app version target', () => {
@@ -37,7 +37,7 @@ test('export archive name includes the full package version', async () => {
   const buildScript = fs.readFileSync('build.sh', 'utf8');
   const exportScript = fs.readFileSync('build-and-export.sh', 'utf8');
 
-  assert.equal(info.archiveName, 'family_cashflow_v1.1.0.tar.gz');
+  assert.equal(info.archiveName, 'family_cashflow_v1.1.1.tar.gz');
   assert.match(buildScript, /archive-name/);
   assert.match(buildScript, /gzip/);
   assert.match(exportScript, /archive-name/);

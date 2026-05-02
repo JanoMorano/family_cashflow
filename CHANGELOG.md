@@ -1,5 +1,9 @@
 # Family Cashflow Changelog
 
+## 1.1.1 - Family Cashflow 1.1.1
+
+- Added editable gas tariff price-list fields and monthly average utility cost calculation refinements.
+
 ## 1.1.0 - Family Cashflow 1.1
 
 - Added login and multi-user session support with default `admin/admin` and `demo/demo` accounts.
