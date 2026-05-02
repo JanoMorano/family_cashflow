@@ -8,6 +8,7 @@
 <script src="/js/app-version.js"></script>
 <script src="/js/app-version-label.js"></script>
 <script src="/js/utility-i18n.js"></script>
+<script src="/js/utility-costs.js"></script>
 <script src="js/gas-pricing.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
@@ -129,7 +130,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--orange);border-c
   </div>
   <div class="kpi-row">
     <div class="kpi yl"><div class="lbl" data-i18n="kpi_month_estimate">Tento měsíc (odhad)</div><div class="val" id="kpi-month">—</div></div>
-    <div class="kpi"><div class="lbl" data-i18n="kpi_avg_month">Průměr / měsíc</div><div class="val" id="kpi-avg-cost">—</div></div>
+    <div class="kpi"><div class="lbl" data-i18n="kpi_avg_month">Průměrné měsíční náklady</div><div class="val" id="kpi-avg-cost">—</div></div>
     <div class="kpi"><div class="lbl" data-i18n="kpi_avg_m3">Průměr m³</div><div class="val" id="kpi-avg-m3">—</div></div>
     <div class="kpi"><div class="lbl" data-i18n="kpi_last">Poslední stav</div><div class="val" id="kpi-last">—</div></div>
     <div class="kpi"><div class="lbl" data-i18n="kpi_span">Sledováno</div><div class="val" id="kpi-span">—</div></div>
@@ -192,13 +193,31 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--orange);border-c
 <div class="tab" id="tab-tarif">
   <div class="card">
     <div class="card-hd gray" data-i18n="gas_tariff_title">⚙️ Tarif plynu</div>
-    <div class="set-section">
+    <div class="set-section" oninput="previewGasTariffFromForm()" onchange="previewGasTariffFromForm()">
       <h3 data-i18n="gas_supplier_pricelist">🔥 Dodavatel a ceník</h3>
       <div class="fg3">
         <div class="field"><label class="fl" data-i18n="supplier">Dodavatel</label><input id="t-supplier" placeholder="INNOGY"></div>
         <div class="field"><label class="fl" data-i18n="product">Produkt</label><input id="t-product" placeholder="plyn Optimal 36"></div>
         <div class="field"><label class="fl" data-i18n="price_year">Ceníkový rok</label><input type="number" id="t-year" step="1" min="2026" placeholder="2026"></div>
+        <div class="field"><label class="fl" data-i18n="gas_distribution_area">Distribuční oblast</label><input id="t-area" placeholder="GasNet"></div>
         <div class="field"><label class="fl" data-i18n="kwh_per_m3">1 m³ = kWh</label><input type="number" id="t-kwhm3" step="0.01" placeholder="10.69"><div class="field-note" data-i18n="note_innogy_conversion">dle innogy.pdf: 10,69 kWh/m³</div></div>
+        <div class="field"><label class="fl" data-i18n="gas_annual_for_band">Roční spotřeba pro pásmo (kWh/rok)</label><input type="number" id="t-annual" step="1" min="0" placeholder="auto"><div class="field-note" data-i18n="gas_annual_note">Prázdné = odhad z odečtů, jinak ruční hodnota pro ceníkové pásmo</div></div>
+      </div>
+    </div>
+    <div class="set-section" oninput="previewGasTariffFromForm()" onchange="previewGasTariffFromForm()">
+      <h3 data-i18n="gas_supplier_prices">🔥 Dodavatel — cena plynu</h3>
+      <div class="fg3">
+        <div class="field"><label class="fl" data-i18n="gas_supplier_monthly_fee">Stálý měs. plat dodavatele (Kč/měsíc)</label><input type="number" id="t-gas-sup-fee" step="0.01" placeholder="130.00"><div class="field-note" data-i18n="note_no_vat_monthly">bez DPH · měsíčně</div></div>
+        <div class="field"><label class="fl" data-i18n="gas_commodity_price">Komodita plyn (Kč/kWh)</label><input type="number" id="t-gas-com" step="0.00001" placeholder="1.22000"><div class="field-note" data-i18n="note_no_vat_gas_kwh">bez DPH · na odebraný plyn</div></div>
+      </div>
+    </div>
+    <div class="set-section" oninput="previewGasTariffFromForm()" onchange="previewGasTariffFromForm()">
+      <h3 data-i18n="gas_distribution_prices">🏭 Distribuce a regulované položky</h3>
+      <div class="fg3">
+        <div class="field"><label class="fl" data-i18n="gas_distribution_price">Distribuce plynu (Kč/kWh)</label><input type="number" id="t-gas-dist" step="0.00001" placeholder="0.36911"><div class="field-note" data-i18n="note_no_vat_gas_kwh">bez DPH · na odebraný plyn</div></div>
+        <div class="field"><label class="fl" data-i18n="gas_ote_price">OTE plyn (Kč/kWh)</label><input type="number" id="t-gas-ote" step="0.00001" placeholder="0.00406"><div class="field-note" data-i18n="note_no_vat_gas_kwh">bez DPH · na odebraný plyn</div></div>
+        <div class="field"><label class="fl" data-i18n="gas_capacity_monthly">Měs. plat za kapacitu (Kč/měsíc)</label><input type="number" id="t-gas-cap-month" step="0.01" placeholder="188.65"><div class="field-note" data-i18n="note_no_vat_monthly">bez DPH · měsíčně</div></div>
+        <div class="field"><label class="fl" data-i18n="gas_capacity_annual">Roční plat za kapacitu (Kč/rok)</label><input type="number" id="t-gas-cap-year" step="0.01" placeholder="0.00"><div class="field-note" data-i18n="note_no_vat_gas_annual">bez DPH · ročně, do měsíce se dělí 12</div></div>
         <div class="field"><label class="fl" data-i18n="vat">DPH (%)</label><input type="number" id="t-vat" step="0.1" min="0" max="100" placeholder="21"></div>
       </div>
       <div style="display:flex;align-items:center;padding:0 18px 16px;">
@@ -351,9 +370,11 @@ async function reloadReadings(){if(API_MODE)readings=await fetch('/api/gas/readi
 
 function sorted(){return [...readings].sort((a,b)=>a.date.localeCompare(b.date));}
 function daysBetween(d1,d2){return Math.max(1,Math.round((new Date(d2)-new Date(d1))/86400000));}
-function currentAnnualKwh(){
-  const annual=GasPricing.annualKwhFromReadings(sorted(),tariff.conversionKwhPerM3||tariff.kwhPerM3||TARIFF_DEFAULT.conversionKwhPerM3);
-  return annual||tariff.defaultAnnualKwh||TARIFF_DEFAULT.defaultAnnualKwh;
+function currentAnnualKwh(source=tariff){
+  const manual=Number(source.manualAnnualKwh);
+  if(Number.isFinite(manual)&&manual>0)return manual;
+  const annual=GasPricing.annualKwhFromReadings(sorted(),source.conversionKwhPerM3||source.kwhPerM3||TARIFF_DEFAULT.conversionKwhPerM3);
+  return annual||source.defaultAnnualKwh||TARIFF_DEFAULT.defaultAnnualKwh;
 }
 function computePrices(){
   return GasPricing.computeGasPrices(tariff,currentAnnualKwh());
@@ -394,6 +415,7 @@ function showToast(msg){
 function renderDash(){
   const {months,map}=monthlyAgg();
   const hasData=months.length>0;
+  const intervals=getIntervals();
   $('dash-empty').style.display=hasData?'none':'';
   const prices=computePrices();
   $('kpi-price-m3').textContent=fmt(prices.priceM3WithVat,2);
@@ -402,7 +424,8 @@ function renderDash(){
   $('kpi-last').textContent=s.length?fmt(s[s.length-1].vt,0):'—';
   $('kpi-span').textContent=s.length;
   if(!hasData)return;
-  const avgCost=months.reduce((x,m)=>x+map[m].cost,0)/months.length;
+  const avgBucketCost=months.reduce((x,m)=>x+map[m].cost,0)/months.length;
+  const avgCost=UtilityCosts.averageMonthlyCost(intervals)??avgBucketCost;
   const avgM3=months.reduce((x,m)=>x+map[m].m3,0)/months.length;
   const nowM=new Date().toISOString().slice(0,7);
   $('kpi-month').textContent=map[nowM]?fmt(map[nowM].cost):'~'+fmt(avgCost);
@@ -436,35 +459,67 @@ function renderReadings(){
 }
 
 function renderTarif(){
+  const preview=GasPricing.computeGasPrices(tariff,currentAnnualKwh());
+  const band=preview.band;
   $('t-supplier').value=tariff.supplier||'INNOGY';
   $('t-product').value=tariff.product||'plyn Optimal 36';
   $('t-year').value=tariff.priceYear||2026;
+  $('t-area').value=tariff.distributionArea||'GasNet';
   $('t-kwhm3').value=tariff.conversionKwhPerM3||TARIFF_DEFAULT.conversionKwhPerM3;
+  $('t-annual').value=tariff.manualAnnualKwh||'';
+  $('t-gas-sup-fee').value=band.supplierMonthlyNoVat||0;
+  $('t-gas-com').value=band.commodityKwhNoVat||0;
+  $('t-gas-dist').value=band.distributionKwhNoVat||0;
+  $('t-gas-ote').value=band.oteKwhNoVat||0;
+  $('t-gas-cap-month').value=band.capacityMonthlyNoVat||0;
+  $('t-gas-cap-year').value=band.capacityAnnualNoVat||0;
   $('t-vat').value=Math.round((tariff.vatRate??TARIFF_DEFAULT.vatRate)*100);
   renderTarifResult();
 }
-function renderTarifResult(){
-  const p=computePrices(),vat=Math.round(tariff.vatRate*100),band=p.band,annual=currentAnnualKwh();
+function numberFromInput(id,fallback=0){
+  const value=parseFloat($(id).value);
+  return Number.isFinite(value)?value:fallback;
+}
+function optionalNumberFromInput(id){
+  const value=parseFloat($(id).value);
+  return Number.isFinite(value)&&value>0?value:null;
+}
+function gasTariffFromForm(){
+  return GasPricing.normalizeGasTariff({
+    ...tariff,
+    supplier:$('t-supplier').value||'INNOGY',
+    product:$('t-product').value||'plyn Optimal 36',
+    priceYear:parseInt($('t-year').value,10)||2026,
+    distributionArea:$('t-area').value||'GasNet',
+    conversionKwhPerM3:numberFromInput('t-kwhm3',TARIFF_DEFAULT.conversionKwhPerM3),
+    manualAnnualKwh:optionalNumberFromInput('t-annual'),
+    commodityKwhNoVat:numberFromInput('t-gas-com'),
+    supplierMonthlyNoVat:numberFromInput('t-gas-sup-fee'),
+    distributionKwhNoVat:numberFromInput('t-gas-dist'),
+    capacityMonthlyNoVat:numberFromInput('t-gas-cap-month'),
+    capacityAnnualNoVat:numberFromInput('t-gas-cap-year'),
+    oteKwhNoVat:numberFromInput('t-gas-ote'),
+    vatRate:(numberFromInput('t-vat',21))/100,
+  });
+}
+function previewGasTariffFromForm(){
+  renderTarifResult(gasTariffFromForm());
+}
+function renderTarifResult(source=tariff){
+  const p=GasPricing.computeGasPrices(source,currentAnnualKwh(source)),vat=Math.round(source.vatRate*100),band=p.band,annual=currentAnnualKwh(source);
   $('tarif-result').innerHTML=[
-    {l:tr('gas_supplier'),v:tariff.supplier||'—',s:''},
-    {l:tr('gas_product'),v:tariff.product||'—',s:`${tariff.priceYear||2026} • ${tariff.distributionArea||tr('gasnet')}`},
+    {l:tr('gas_supplier'),v:source.supplier||'—',s:''},
+    {l:tr('gas_product'),v:source.product||'—',s:`${source.priceYear||2026} • ${source.distributionArea||tr('gasnet')}`},
     {l:tr('annual_band'),v:band.label||'—',s:tr('per_year_kwh',{value:fmt(annual,0)}),hi:true},
     {l:tr('price_kwh_vat'),v:fmt(p.unitKwhWithVat,5)+' Kč',s:tr('no_vat_value',{value:fmt(p.unitKwhNoVat,5)})},
     {l:tr('price_m3_vat'),v:fmt(p.priceM3WithVat,2)+' Kč',s:`${fmt(p.conversionKwhPerM3,2)} kWh/m³`,hi:true},
     {l:tr('monthly_fee_vat',{vat}),v:fmt(p.monthlyFeeWithVat,2)+' Kč/měsíc',s:tr('no_vat_value',{value:fmt(p.monthlyFeeNoVat,2)}),hi:true},
   ].map(x=>`<div class="pv-cell ${x.hi?'pv-hi':''}"><div class="pv-label">${x.l}</div><div class="pv-val">${x.v}</div>${x.s?`<div class="pv-sub">${x.s}</div>`:''}</div>`).join('');
-  $('tarif-formula').innerHTML=`<strong>${tr('formula_gas_title')}</strong> (${tariff.product||'plyn Optimal 36'}, ${tariff.priceYear||2026}): ${tr('annual_estimate',{band:`<strong>${esc(band.label||'—')}</strong>`,annual:fmt(annual,0)})}.<br><strong>${tr('gas_formula_unit_no_vat')}</strong> = ${tr('gas_consumption_chart').toLowerCase()} ${fmt(band.commodityKwhNoVat||0,5)} + distribuce ${fmt(band.distributionKwhNoVat||0,5)} + OTE ${fmt(band.oteKwhNoVat||0,5)} = <strong>${fmt(p.unitKwhNoVat,5)} Kč/kWh</strong>; s DPH ${vat} % = <strong>${fmt(p.unitKwhWithVat,5)} Kč/kWh</strong>.<br><strong>${tr('gas_formula_m3_vat')}</strong> = ${fmt(p.unitKwhWithVat,5)} × ${fmt(p.conversionKwhPerM3,2)} = <strong>${fmt(p.priceM3WithVat,2)} Kč/m³</strong>.<br><strong>${tr('gas_formula_monthly_vat')}</strong> = (${fmt(band.supplierMonthlyNoVat||0,2)} + ${fmt(band.capacityMonthlyNoVat||0,2)}) × ${(1+tariff.vatRate).toFixed(2)} = <strong>${fmt(p.monthlyFeeWithVat,2)} Kč</strong>.`;
+  $('tarif-formula').innerHTML=`<strong>${tr('formula_gas_title')}</strong> (${source.product||'plyn Optimal 36'}, ${source.priceYear||2026}): ${tr('annual_estimate',{band:`<strong>${esc(band.label||'—')}</strong>`,annual:fmt(annual,0)})}.<br><strong>${tr('gas_formula_unit_no_vat')}</strong> = ${tr('gas_commodity_price')} ${fmt(band.commodityKwhNoVat||0,5)} + ${tr('gas_distribution_price').toLowerCase()} ${fmt(band.distributionKwhNoVat||0,5)} + OTE ${fmt(band.oteKwhNoVat||0,5)} = <strong>${fmt(p.unitKwhNoVat,5)} Kč/kWh</strong>; s DPH ${vat} % = <strong>${fmt(p.unitKwhWithVat,5)} Kč/kWh</strong>.<br><strong>${tr('gas_formula_m3_vat')}</strong> = ${fmt(p.unitKwhWithVat,5)} × ${fmt(p.conversionKwhPerM3,2)} = <strong>${fmt(p.priceM3WithVat,2)} Kč/m³</strong>.<br><strong>${tr('gas_formula_monthly_no_vat')}</strong> = ${tr('gas_supplier_monthly_fee')} ${fmt(band.supplierMonthlyNoVat||0,2)} + ${tr('gas_capacity_monthly').toLowerCase()} ${fmt(band.capacityMonthlyNoVat||0,2)} + ${tr('gas_capacity_annual').toLowerCase()} ${fmt((band.capacityAnnualNoVat||0)/12,2)} = <strong>${fmt(p.monthlyFeeNoVat,2)} Kč</strong>; s DPH ${vat} % = <strong>${fmt(p.monthlyFeeWithVat,2)} Kč</strong>.`;
 }
 async function saveTariff(){
-  tariff=GasPricing.normalizeGasTariff({
-    ...tariff,
-    supplier:$('t-supplier').value||'INNOGY',
-    product:$('t-product').value||'plyn Optimal 36',
-    priceYear:parseInt($('t-year').value,10)||2026,
-    conversionKwhPerM3:parseFloat($('t-kwhm3').value)||TARIFF_DEFAULT.conversionKwhPerM3,
-    vatRate:(parseFloat($('t-vat').value)||21)/100,
-  });
-  await saveT();renderTarif();const m=$('tariff-ok');m.style.display='inline';setTimeout(()=>m.style.display='none',2000);
+  tariff=gasTariffFromForm();
+  await saveT();renderTarif();renderDash();const m=$('tariff-ok');m.style.display='inline';setTimeout(()=>m.style.display='none',2000);
 }
 
 function openModal(id){

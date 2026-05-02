@@ -101,14 +101,32 @@
     }
 
     const band = selectGasBand(annualKwh || tariff.defaultAnnualKwh, tariff.bands);
-    const unitKwhNoVat = round((band.commodityKwhNoVat || 0) + (band.distributionKwhNoVat || 0) + (band.oteKwhNoVat || 0), 5);
-    const monthlyFeeNoVat = round((band.supplierMonthlyNoVat || 0) + (band.capacityMonthlyNoVat || 0), 2);
+    const component = (name, fallback = 0) => {
+      const value = Number(tariff[name]);
+      return Number.isFinite(value) ? value : Number(fallback || 0);
+    };
+    const commodityKwhNoVat = component('commodityKwhNoVat', band.commodityKwhNoVat);
+    const distributionKwhNoVat = component('distributionKwhNoVat', band.distributionKwhNoVat);
+    const oteKwhNoVat = component('oteKwhNoVat', band.oteKwhNoVat);
+    const supplierMonthlyNoVat = component('supplierMonthlyNoVat', band.supplierMonthlyNoVat);
+    const capacityMonthlyNoVat = component('capacityMonthlyNoVat', band.capacityMonthlyNoVat);
+    const capacityAnnualNoVat = component('capacityAnnualNoVat', 0);
+    const unitKwhNoVat = round(commodityKwhNoVat + distributionKwhNoVat + oteKwhNoVat, 5);
+    const monthlyFeeNoVat = round(supplierMonthlyNoVat + capacityMonthlyNoVat + (capacityAnnualNoVat / 12), 2);
     const unitKwhWithVat = round(unitKwhNoVat * (1 + tariff.vatRate), 5);
     const monthlyFeeWithVat = round(monthlyFeeNoVat * (1 + tariff.vatRate), 2);
 
     return {
       tariff,
-      band,
+      band: {
+        ...band,
+        commodityKwhNoVat,
+        distributionKwhNoVat,
+        oteKwhNoVat,
+        supplierMonthlyNoVat,
+        capacityMonthlyNoVat,
+        capacityAnnualNoVat,
+      },
       conversionKwhPerM3: tariff.conversionKwhPerM3,
       unitKwhNoVat,
       unitKwhWithVat,

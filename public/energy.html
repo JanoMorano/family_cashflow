@@ -9,6 +9,7 @@
 <script src="/js/app-version.js"></script>
 <script src="/js/app-version-label.js"></script>
 <script src="/js/utility-i18n.js"></script>
+<script src="/js/utility-costs.js"></script>
 <style>
 :root{
   --blue:#2563EB;--blue-l:#EFF6FF;--blue-d:#1E40AF;
@@ -252,7 +253,7 @@ textarea{resize:vertical;min-height:56px;}
       <div class="val" id="kpi-month">—</div>
     </div>
     <div class="kpi">
-      <div class="lbl" data-i18n="kpi_avg_month">Průměr / měsíc</div>
+      <div class="lbl" data-i18n="kpi_avg_month">Průměrné měsíční náklady</div>
       <div class="val" id="kpi-avg-cost">—</div>
     </div>
     <div class="kpi">
@@ -843,6 +844,7 @@ function showToast(msg) {
 function renderDash() {
   const { months, map } = monthlyAgg();
   const hasData = months.length > 0;
+  const intervals = getIntervals();
 
   document.getElementById('dash-empty').style.display = hasData ? 'none' : '';
 
@@ -854,7 +856,8 @@ function renderDash() {
 
   if (!hasData) return;
 
-  const avgCost = months.reduce((s,m) => s + map[m].cost, 0) / months.length;
+  const avgBucketCost = months.reduce((s,m) => s + map[m].cost, 0) / months.length;
+  const avgCost = UtilityCosts.averageMonthlyCost(intervals) ?? avgBucketCost;
   const avgVT   = months.reduce((s,m) => s + map[m].vt,   0) / months.length;
   const avgNT   = months.reduce((s,m) => s + map[m].nt,   0) / months.length;
 
